@@ -1,19 +1,7 @@
-// 🔥 Firebase SDK (v10 - ES Modules)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { 
-  getDatabase, 
-  ref, 
-  set, 
-  push, 
-  update, 
-  increment 
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-import { 
-  getAuth, 
-  signInAnonymously 
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getDatabase, ref, set, get, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-// 🔐 CONFIGURAZIONE FIREBASE (LA TUA)
 const firebaseConfig = {
   apiKey: "AIzaSyAGFnP6wNzzy3jgvkjXxwpTmRFOpP3HvgU",
   authDomain: "blackjack-torneo.firebaseapp.com",
@@ -24,30 +12,20 @@ const firebaseConfig = {
   appId: "1:509149383414:web:f5c09acff20306f7bbfad7"
 };
 
-// 🚀 Inizializza Firebase
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-const auth = getAuth(app);
+export const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+export const db = getDatabase(app);
+export const provider = new GoogleAuthProvider();
 
-// 👤 Login anonimo (automatico)
-signInAnonymously(auth)
-  .then(res => {
-    window.PLAYER_UID = res.user.uid;
-    console.log("Player UID:", PLAYER_UID);
+export async function login(){
+  return signInWithPopup(auth, provider);
+}
 
-    // registra il player nel torneo
-    if (typeof initPlayer === "function") {
-      initPlayer();
-    }
-  })
-  .catch(err => {
-    console.error("Errore autenticazione Firebase:", err);
-  });
+export function saveResult(uid, data){
+  return set(ref(db, `tournament/players/${uid}`), data);
+}
 
-// 🌍 Esponi funzioni globali (usate in game.js)
-window.db = db;
-window.ref = ref;
-window.set = set;
-window.push = push;
-window.update = update;
-window.increment = increment;
+export async function checkBlocked(uid){
+  const snap = await get(ref(db, `bans/${uid}`));
+  return snap.exists();
+}
