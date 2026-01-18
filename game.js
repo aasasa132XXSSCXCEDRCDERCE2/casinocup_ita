@@ -12,11 +12,11 @@ let gameOver = false;
 const suits = ['♠','♥','♦','♣'];
 const values = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 
-// Anti-cheat
+// Seed e hash anti-cheat
 let roundSeed = "";
 let roundHash = "";
 
-// ----------------- FUNZIONI DECK -----------------
+// ----------------- LOGICA DECK -----------------
 function createDeck(){
     let d = [];
     suits.forEach(s => values.forEach(v => d.push({v,s})));
@@ -30,7 +30,7 @@ function shuffle(d){
 }
 function draw(){ return deck.pop(); }
 
-// ----------------- SCORE -----------------
+// ----------------- CALCOLO PUNTEGGIO -----------------
 function score(cards){
     let total = 0;
     let aces = 0;
@@ -44,11 +44,11 @@ function score(cards){
 }
 
 // ----------------- UPDATE UI -----------------
-function updateUI(showDealer=false){
+function updateUI(){
     document.getElementById("bankroll").innerText = bankroll;
     document.getElementById("handsLeft").innerText = handsLeft;
     document.getElementById("bet").innerText = bet;
-    render(showDealer);
+    render();
 }
 
 // ----------------- CHIPS -----------------
@@ -81,17 +81,18 @@ document.getElementById("dealBtn").addEventListener("click", ()=>{
     if(bet<50){ alert("Puntata minima 50€"); return; }
     if(handsLeft<=0){ alert("Hai finito le mani!"); return; }
 
+    // Deck e dealer
     deck = createDeck();
     shuffle(deck);
     dealer = [draw(), draw()];
     playerHands = [[draw(), draw()]];
     currentHand = 0;
 
-    // Anti-cheat
+    // Genera seed e hash anti-cheat
     roundSeed = Math.floor(Math.random()*1e9).toString();
     roundHash = hashString(JSON.stringify({seed: roundSeed, bet: bet, deck: deck.map(c=>c.v+c.s)}));
 
-    // Nascondi chips durante il turno
+    // Nascondi chips quando inizi
     document.getElementById("chips").style.display="none";
 
     updateUI();
@@ -103,7 +104,7 @@ document.getElementById("hitBtn").addEventListener("click", ()=>{
     let hand = playerHands[currentHand];
     hand.push(draw());
     if(score(hand)>21){ // bust
-        setTimeout(nextHand,500);
+        setTimeout(nextHand, 500);
     }
     updateUI();
 });
@@ -150,82 +151,97 @@ function nextHand(){
 
 // ----------------- RISOLUZIONE DEALER -----------------
 function resolveDealer(){
-    render(true); // mostra carte dealer
+    render(true); // Mostra tutte le carte del dealer
 
     // Dealer automatico
-    const dealerInterval = setInterval(()=>{
-        if(score(dealer)<17){
-            dealer.push(draw());
-            updateUI(true);
-        } else {
-            clearInterval(dealerInterval);
-            checkWinner();
-        }
-    }, 800);
-}
+    while(score(dealer)<17){
+        dealer.push(draw());
+        render(true);
+    }
 
-// ----------------- CONTROLLA VINCITORE -----------------
-function checkWinner(){
+    // Calcolo vincite
     playerHands.forEach(hand=>{
-        const p = score(hand);
-        const d = score(dealer);
+        let p = score(hand);
+        let d = score(dealer);
         if(p>21){} // bust perde
         else if(d>21 || p>d) bankroll += (p===21 && hand.length===2)? Math.floor(bet*2.5): bet*2;
         else if(p<d){} // perde
-        else if(p===d) bankroll += bet; // pareggio
+        else if(p===d) bankroll += bet; // pareggio restituisce puntata
     });
 
     handsLeft--;
     sendResultToFirebase();
-    bet = 0;
-    playerHands = [[]];
-    dealer = [];
-    betHistory = [];
-
+    bet=0;
+    playerHands=[[]];
+    dealer=[]; 
+    betHistory=[];
     updateUI();
 
+    // Mostra di nuovo le chips dopo 3 secondi o fine torneo
     setTimeout(()=>{
         if(handsLeft>0){
             document.getElementById("chips").style.display="flex";
         } else {
             gameOver=true;
-            alert("Hai terminato tutte le mani! Non puoi più giocare.");
+            alert("Hai finito tutte le mani! Non puoi più giocare.");
             document.querySelectorAll("button, .chip").forEach(el=>el.disabled=true);
         }
     }, 3000);
 }
 
-// ----------------- RENDER -----------------
+// ----------------- RENDER CARTE -----------------
 function render(showDealer=false){
+    // Dealer
     const dealerDiv = document.getElementById("dealerCards");
-    const playerDiv = document.getElementById("playerCards");
-    const dealerScoreDiv = document.getElementById("dealerScore");
-    const playerScoreDiv = document.getElementById("playerScore");
-
     dealerDiv.innerHTML="";
-    playerDiv.innerHTML="";
-
     dealer.forEach((c,i)=>{
         const card = document.createElement("div");
         card.className="card";
         card.innerText = (i===0 && !showDealer) ? "?" : c.v+c.s;
         card.style.background = ["♥","♦"].includes(c.s)?"#ffdddd":"#ffffff";
         card.style.color = ["♥","♦"].includes(c.s)?"red":"black";
+        card.style.width="80px";
+        card.style.height="120px";
+        card.style.display="flex";
+        card.style.justifyContent="center";
+        card.style.alignItems="center";
+        card.style.border="1px solid #000";
+        card.style.borderRadius="8px";
+        card.style.marginLeft=i===0?"0":"-30px";
         dealerDiv.appendChild(card);
     });
-    dealerScoreDiv.innerText = "Dealer: " + (showDealer ? score(dealer) : score([dealer[1]] || [])); // solo seconda carta inizialmente
+    // Aggiorna punteggio dealer
+    const dealerScore = showDealer ? score(dealer) : score([dealer[1]]);
+    document.getElementById("dealerScore").innerText = "Dealer: " + dealerScore;
 
+    // Player
+    const playerDiv = document.getElementById("playerCards");
+    playerDiv.innerHTML="";
     playerHands.forEach(hand=>{
-        hand.forEach(c=>{
+        const handCircle = document.createElement("div");
+        handCircle.style.display="inline-flex";
+        hand.forEach((c,i)=>{
             const card = document.createElement("div");
             card.className="card";
             card.innerText = c.v+c.s;
             card.style.background = ["♥","♦"].includes(c.s)?"#ffdddd":"#ffffff";
             card.style.color = ["♥","♦"].includes(c.s)?"red":"black";
-            playerDiv.appendChild(card);
+            card.style.width="80px";
+            card.style.height="120px";
+            card.style.display="flex";
+            card.style.justifyContent="center";
+            card.style.alignItems="center";
+            card.style.border="1px solid #000";
+            card.style.borderRadius="8px";
+            card.style.marginLeft=i===0?"0":"-30px";
+            handCircle.appendChild(card);
         });
+        playerDiv.appendChild(handCircle);
     });
-    playerScoreDiv.innerText = "Tu: "+score(playerHands[currentHand]);
+
+    // Aggiorna punteggio giocatore
+    const currentScore = score(playerHands[currentHand]);
+    document.getElementById("playerScore").innerText = "Tu: " + currentScore;
 }
 
 // ----------------- FIREBASE -----------------
