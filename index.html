@@ -2,116 +2,130 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>Blackjack Casinò Pro</title>
+<title>Blackjack Casinò</title>
 <style>
-body{
-    margin:0;
+/* --- Reset e Body --- */
+body, html {
+    margin:0; padding:0;
+    width:100%; height:100%;
     font-family: Arial, Helvetica, sans-serif;
     background:#0b3f1f;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    height:100vh;
+    display:flex; justify-content:center; align-items:center;
+    user-select:none;
 }
-#table{
-    width:95vw;
-    max-width:1200px;
-    height:90vh;
-    background: radial-gradient(circle at center,#0f5a34 0%,#07331e 70%);
-    border: 15px solid #7a4d1d;
-    border-radius: 40px;
+
+/* --- Tavolo --- */
+#table {
     position: relative;
-    display:flex;
+    width: 90vw;
+    max-width: 1200px;
+    height: 80vh;
+    background: #006400; /* felt verde */
+    border: 20px solid #8b4513; /* bordo legno */
+    border-radius: 40px;
+    display: flex;
     flex-direction: column;
     justify-content: space-between;
-    padding: 10px;
+    padding: 20px;
     box-sizing: border-box;
 }
-.cards{
-    display:flex;
-    justify-content:center;
-    gap:10px;
-    margin:10px 0;
+
+/* --- Dealer e Player Area --- */
+#dealerArea, #playerArea {
+    display:flex; flex-direction: column; align-items:center;
 }
-.card{
-    width:70px;
-    height:100px;
-    background:#fff;
-    border-radius:8px;
-    display:flex;
-    justify-content:center;
-    align-items:center;
+
+#dealerCards, #playerHandsArea {
+    display:flex; justify-content:center; margin: 10px 0;
+}
+
+.card {
+    width:60px; height:90px;
+    background:#fff; /* carta */
+    border:2px solid #000;
+    border-radius:5px;
+    display:flex; justify-content:center; align-items:center;
     font-weight:bold;
-    font-size:18px;
-    color:#000;
+    font-size:16px;
+    margin-left:-20px;
     position: relative;
 }
-.handTotal{
-    text-align:center;
-    color:#fff;
-    margin-top:5px;
-    font-weight:bold;
+
+/* Totale sotto la mano */
+.cardTotal {
+    width:100%; text-align:center; margin-top:5px; color:white; font-weight:bold;
 }
-.handCircle{
-    display:inline-flex;
-    flex-direction:column;
-    align-items:center;
-    margin:0 5px;
+
+/* --- Chips --- */
+#chips {
+    display:flex; justify-content:center; gap:10px;
+    margin-top:10px;
 }
-#chips{
-    display:flex;
-    justify-content:center;
-    gap:15px;
-    margin-bottom:10px;
-}
-.chip{
-    width:60px;
-    height:60px;
+
+.chip {
+    width:50px; height:50px;
     border-radius:50%;
     border:2px solid #fff;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    font-weight:bold;
+    display:flex; justify-content:center; align-items:center;
     cursor:pointer;
-    color:#fff;
+    font-weight:bold;
+    color:white;
+    user-select:none;
 }
+
 .c50{background:#3498db;}
 .c100{background:#e74c3c;}
 .c500{background:#8e44ad;}
 .c1000{background:#f1c40f;color:#000;}
-#ui{
-    display:flex;
-    justify-content: space-around;
-    align-items:center;
-    margin-bottom:10px;
-    color:#fff;
-    font-weight:bold;
+
+/* --- Pulsanti azioni --- */
+#actions {
+    display:flex; justify-content:center; gap:10px;
+    margin-top:15px;
 }
-button{
-    padding:8px 14px;
+
+button {
+    padding:8px 15px;
     font-weight:bold;
     cursor:pointer;
     border:none;
-    border-radius:6px;
+    border-radius:5px;
     background:#d4af37;
 }
-button:active{opacity:0.9;}
+
+button:active {opacity:0.8;}
+
+/* --- Info --- */
+#info {
+    display:flex; justify-content:space-between;
+    margin-top:10px;
+    color:white;
+    font-weight:bold;
+}
+
+/* Totale dealer e giocatore */
+#dealerScore, #playerScore {
+    color:white;
+    margin-top:5px;
+    font-weight:bold;
+}
 </style>
 </head>
 <body>
 
 <div id="table">
     <!-- Dealer -->
-    <div>
-        <h3 style="color:#fff;text-align:center;">Dealer</h3>
-        <div id="dealerCards" class="cards"></div>
+    <div id="dealerArea">
+        <div>Dealer</div>
+        <div id="dealerCards"></div>
+        <div id="dealerScore">Totale Dealer: 0</div>
     </div>
 
     <!-- Player -->
-    <div>
-        <h3 style="color:#fff;text-align:center;">Giocatore</h3>
+    <div id="playerArea">
+        <div>Giocatore</div>
         <div id="playerHandsArea"></div>
+        <div id="playerScore">Totale: 0</div>
     </div>
 
     <!-- Chips -->
@@ -120,44 +134,35 @@ button:active{opacity:0.9;}
         <div class="chip c100" data-value="100">100</div>
         <div class="chip c500" data-value="500">500</div>
         <div class="chip c1000" data-value="1000">1000</div>
-        <div class="chip" id="undoBtn">UNDO</div>
+        <button id="undoBtn">UNDO</button>
     </div>
 
-    <!-- UI -->
-    <div id="ui">
+    <!-- Azioni -->
+    <div id="actions">
+        <button id="dealBtn">DEAL</button>
+        <button id="hitBtn">HIT</button>
+        <button id="standBtn">STAND</button>
+        <button id="doubleBtn">DOUBLE</button>
+        <button id="splitBtn">SPLIT</button>
+    </div>
+
+    <!-- Info saldo e mani -->
+    <div id="info">
         <div>Bankroll: €<span id="bankroll">10000</span></div>
-        <div>Mani rimaste: <span id="handsLeft">30</span></div>
+        <div>Mani rimanenti: <span id="handsLeft">30</span></div>
         <div>Puntata: €<span id="bet">0</span></div>
-        <div>
-            <button id="dealBtn">DEAL</button>
-            <button id="hitBtn">HIT</button>
-            <button id="standBtn">STAND</button>
-            <button id="doubleBtn">DOUBLE</button>
-            <button id="splitBtn">SPLIT</button>
-        </div>
     </div>
 </div>
 
 <!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js"></script>
 
 <!-- Firebase Config -->
-<script>
-const firebaseConfig = {
-  apiKey: "API_KEY",
-  authDomain: "TUO_PROGETTO.firebaseapp.com",
-  databaseURL: "https://TUO_PROGETTO.firebaseio.com",
-  projectId: "TUO_PROGETTO",
-  storageBucket: "TUO_PROGETTO.appspot.com",
-  messagingSenderId: "MESSAGING_SENDER_ID",
-  appId: "APP_ID"
-};
-firebase.initializeApp(firebaseConfig);
-</script>
+<script src="firebase.js"></script>
 
-<!-- Game Script -->
+<!-- Game Logic -->
 <script src="game.js"></script>
 
 </body>
