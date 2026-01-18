@@ -2,65 +2,102 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>Admin Dashboard - Blackjack Torneo</title>
+<title>Dashboard Admin - Blackjack Torneo</title>
 <style>
-body { font-family: Arial, sans-serif; background:#0b3d1e; color:white; margin:0; padding:0;}
-h1 { text-align:center; margin:20px 0; }
-table { width:90%; margin:0 auto; border-collapse: collapse; }
-th, td { border: 1px solid #fff; padding: 10px; text-align:center; }
-th { background: #2c7a3e; }
-tr:nth-child(even) { background: rgba(255,255,255,0.1);}
+body {
+    margin:0;
+    font-family: Arial, sans-serif;
+    background: #0b3d1e; /* verde felt */
+    color: #fff;
+}
+h1 {
+    text-align:center;
+    margin: 20px 0;
+    font-size: 28px;
+    color: #ffd700;
+}
+#lastUpdate {
+    text-align:center;
+    margin-bottom: 20px;
+    color: #ffd700;
+}
+table {
+    width: 95%;
+    margin: 0 auto 40px;
+    border-collapse: collapse;
+    background: #07331e;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    border-radius: 8px;
+    overflow: hidden;
+}
+th, td {
+    padding: 12px 8px;
+    text-align: center;
+    border-bottom: 1px solid #555;
+}
+th {
+    background: #2c7a3e;
+    font-size: 16px;
+}
+tr:nth-child(even){ background: rgba(255,255,255,0.05); }
+tr:hover { background: rgba(255,215,0,0.2); }
 </style>
 </head>
 <body>
+
 <h1>Blackjack Torneo - Classifica</h1>
+<div id="lastUpdate">Aggiornamento: --</div>
+
 <table>
     <thead>
         <tr>
             <th>Posizione</th>
-            <th>Username</th>
+            <th>Username / ID</th>
             <th>Balance (€)</th>
+            <th>Mani rimaste</th>
             <th>Ultima partita</th>
         </tr>
     </thead>
     <tbody id="leaderboard">
-        <!-- Qui verranno inseriti i dati -->
+        <!-- Dati giocatori -->
     </tbody>
 </table>
 
+<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="firebase.js"></script> <!-- il tuo config di Firebase -->
+<script src="firebase.js"></script> <!-- il tuo file config -->
 
 <script>
-// Riferimento al nodo "players"
-const playersRef = firebase.database().ref('players');
+const playersRef = firebase.database().ref("blackjack/players");
 
-// Funzione per aggiornare la classifica in tempo reale
-playersRef.on('value', snapshot => {
+// Aggiornamento live della classifica
+playersRef.on('value', snapshot=>{
     const data = snapshot.val();
     if(!data) return;
 
-    // Ordina i giocatori per balance decrescente
-    const sorted = Object.entries(data).sort((a,b) => b[1].balance - a[1].balance);
+    // Ordina per balance decrescente
+    const sorted = Object.entries(data).sort((a,b)=>b[1].balance - a[1].balance);
 
-    // Aggiorna le posizioni
-    sorted.forEach((entry,index) => entry[1].position = index+1);
+    const tbody = document.getElementById("leaderboard");
+    tbody.innerHTML = "";
 
-    // Mostra in tabella
-    const tbody = document.getElementById('leaderboard');
-    tbody.innerHTML = '';
-    sorted.forEach(([uid, player])=>{
-        const tr = document.createElement('tr');
+    sorted.forEach(([id, player], index)=>{
+        const tr = document.createElement("tr");
+        const date = new Date(player.timestamp).toLocaleString();
         tr.innerHTML = `
-            <td>${player.position}</td>
-            <td>${player.username}</td>
+            <td>${index+1}</td>
+            <td>${player.username || id}</td>
             <td>${player.balance}</td>
-            <td>${new Date(player.lastPlayed*1000).toLocaleString()}</td>
+            <td>${player.handsLeft}</td>
+            <td>${date}</td>
         `;
         tbody.appendChild(tr);
     });
+
+    document.getElementById("lastUpdate").innerText = "Aggiornamento: " + new Date().toLocaleTimeString();
 });
 </script>
+
 </body>
 </html>
