@@ -2,220 +2,131 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>Blackjack Realistico</title>
+<title>Blackjack Casinò Realistico</title>
 <style>
 body {
-    margin:0; font-family:Arial,sans-serif; overflow:hidden; background:#333;
+    margin:0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: #0b3d1e; /* verde felt scuro */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
 }
+
 #table {
-    width:100vw;
-    height:100vh;
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    border:50px solid transparent; border-radius:30px;
-    box-shadow:0 0 30px rgba(0,0,0,0.5);
-
-    /* Bordo legno */
-    border-image: url('https://i.imgur.com/4f7PpG7.jpg') 30 stretch;
-
-    /* Felt verde */
-    background: url('https://i.imgur.com/FfMdfzm.jpg') center center / cover no-repeat;
-    position:relative;
+    width: 95vw;
+    height: 90vh;
+    background: radial-gradient(circle at center, #0f5a34 0%, #07331e 80%);
+    border: 30px solid #8b4513; /* legno bordo */
+    border-radius: 30px;
+    box-shadow: 0 0 30px rgba(0,0,0,0.5);
+    position: relative;
+    padding: 20px;
 }
-.dealer, .hands {
-    display:flex; justify-content:center; margin:10px; gap:20px;
+
+/* Dealer e giocatore */
+#dealer, #playerHands {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
 }
+
+/* Cerchio per le mani */
 .hand-circle {
-    width:220px; height:160px; border-radius:50%; border:3px solid #d4af37;
-    display:flex; justify-content:center; align-items:center;
-    background: rgba(0,0,0,0.2); position:relative; transition: transform 0.3s ease;
+    width: 200px;
+    min-height: 140px;
+    border: 3px solid #d4af37;
+    border-radius: 50%;
+    margin: 0 20px;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 10px;
+    background: rgba(0,0,0,0.1);
 }
-.hand-circle.active { box-shadow:0 0 20px #fff; }
+
+.hand-circle.active {
+    box-shadow: 0 0 20px #ffd700;
+}
+
+/* Carte generate con testo */
 .card {
-    width:60px; height:90px; border-radius:5px; background:white;
-    display:flex; justify-content:center; align-items:center;
-    font-weight:bold; font-size:18px; margin-left:-20px;
-    box-shadow:0 2px 6px rgba(0,0,0,0.5);
-    transition: transform 0.3s ease, top 0.3s ease, left 0.3s ease;
-    position:relative;
+    width: 60px;
+    height: 90px;
+    border-radius: 6px;
+    border: 1px solid #fff;
+    background: #ffffff33;
+    color: #fff;
+    font-weight: bold;
+    font-size: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
 }
-#chips { position:absolute; bottom:20px; display:flex; gap:10px; }
-.chip { width:50px; height:50px; border-radius:50%; background:#f1c40f;
-    display:flex; justify-content:center; align-items:center; font-weight:bold; cursor:pointer;
+
+/* UI */
+#ui {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    text-align: center;
 }
-#ui { position:absolute; top:20px; color:white; text-align:right; right:20px; }
-button { background:#d4af37; border:none; padding:8px 14px; margin:2px; cursor:pointer; border-radius:5px; }
+
+button, .chip {
+    margin: 5px;
+    padding: 8px 14px;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 6px;
+    border: none;
+}
+
+.chip {
+    width: 60px;
+    height: 60px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.c50{background:#3498db;}
+.c100{background:#e74c3c;}
+.c500{background:#8e44ad;}
+.c1000{background:#f1c40f;color:#000;}
 </style>
 </head>
+
 <body>
 <div id="table">
-    <div class="dealer" id="dealer"></div>
-    <div class="hands" id="playerHands"></div>
-
-    <div id="chips">
-        <div class="chip" data-value="50">50</div>
-        <div class="chip" data-value="100">100</div>
-        <div class="chip" data-value="500">500</div>
-        <div class="chip" data-value="1000">1000</div>
-    </div>
+    <div id="dealer"></div>
+    <div id="playerHands"></div>
 
     <div id="ui">
-        Bankroll: €<span id="balance">1000</span><br>
-        Puntata: €<span id="currentBet">0</span><br>
-        <button id="deal">DAI CARTE</button>
-        <button id="hit">HIT</button>
-        <button id="stand">STAND</button>
-        <button id="split">SPLIT</button>
+        <div>Bankroll: €<span id="balance">10000</span></div>
+        <div>Mani rimanenti: <span id="hands">30</span></div>
+        <div>Puntata: €<span id="currentBet">0</span></div>
+
+        <div style="margin:10px 0;">
+            <div class="chip c50" data-value="50">50</div>
+            <div class="chip c100" data-value="100">100</div>
+            <div class="chip c500" data-value="500">500</div>
+            <div class="chip c1000" data-value="1000">1000</div>
+        </div>
+
+        <button id="deal">Dai carte</button>
+        <button id="hit">Hit</button>
+        <button id="stand">Stand</button>
+        <button id="split">Split</button>
     </div>
 </div>
 
-<script>
-// -------------------------
-// STATO
-// -------------------------
-let balance = 1000;
-let currentBet = 0;
-let deck = [];
-let dealerHand = [];
-let playerHands = [[]];
-let activeHand = 0;
-let gamePhase = "betting"; // betting | playing | finished
-
-// -------------------------
-// DECK
-// -------------------------
-function createDeck() {
-    const suits = ["♠","♥","♦","♣"];
-    const values = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
-    let d = [];
-    for(let s of suits) for(let v of values) d.push({s,v});
-    return d.sort(()=>Math.random()-0.5);
-}
-function drawCard(){ return deck.pop(); }
-function handValue(hand){
-    let total=0, aces=0;
-    for(let c of hand){
-        if(c.v==="A"){total+=11; aces++;}
-        else if(["K","Q","J"].includes(c.v)) total+=10;
-        else total+=parseInt(c.v);
-    }
-    while(total>21 && aces>0){total-=10; aces--;}
-    return total;
-}
-
-// -------------------------
-// CHIP BUTTONS
-// -------------------------
-document.querySelectorAll(".chip").forEach(chip=>{
-    chip.addEventListener("click", ()=>{
-        if(gamePhase!=="betting") return;
-        let val = parseInt(chip.dataset.value);
-        if(balance>=val){ currentBet+=val; balance-=val; updateUI();}
-    });
-});
-
-// -------------------------
-// BUTTONS
-// -------------------------
-document.getElementById("deal").onclick = startGame;
-document.getElementById("hit").onclick = hit;
-document.getElementById("stand").onclick = stand;
-document.getElementById("split").onclick = splitHand;
-
-// -------------------------
-// START GAME
-// -------------------------
-function startGame(){
-    if(currentBet===0) { alert("Seleziona almeno una chip!"); return; }
-    deck = createDeck();
-    dealerHand = [drawCard(), drawCard()];
-    playerHands = [[drawCard(), drawCard()]];
-    activeHand = 0;
-    gamePhase = "playing";
-    render();
-}
-
-// -------------------------
-// SPLIT
-// -------------------------
-function splitHand(){
-    let hand = playerHands[activeHand];
-    if(hand.length!==2) return;
-    if(hand[0].v!==hand[1].v) return;
-    if(balance<currentBet) return;
-    balance -= currentBet;
-    let hand1 = [hand[0], drawCard()];
-    let hand2 = [hand[1], drawCard()];
-    playerHands = [hand1, hand2];
-    activeHand = 0;
-    render();
-}
-
-// -------------------------
-// HIT/STAND
-// -------------------------
-function hit(){
-    playerHands[activeHand].push(drawCard());
-    if(handValue(playerHands[activeHand])>21) nextHand();
-    renderCards();
-}
-function stand(){ nextHand(); }
-
-function nextHand(){
-    if(activeHand<playerHands.length-1){ activeHand++; renderCards(); }
-    else { gamePhase="finished"; dealerPlay(); renderCards(); }
-}
-
-// -------------------------
-// DEALER
-// -------------------------
-function dealerPlay(){
-    while(handValue(dealerHand)<17) dealerHand.push(drawCard());
-    playerHands.forEach(h=>{
-        let hv=handValue(h), dv=handValue(dealerHand);
-        if(hv>21){ /* bust */ }
-        else if(dv>21 || hv>dv) balance += currentBet*2;
-        else if(hv===dv) balance += currentBet;
-    });
-    currentBet=0; gamePhase="betting"; updateUI();
-}
-
-// -------------------------
-// RENDER
-// -------------------------
-function render(){
-    renderCards();
-    updateUI();
-}
-function renderCards(){
-    // Dealer
-    const dealerDiv = document.getElementById("dealer");
-    dealerDiv.innerHTML = dealerHand.map((c,i)=>`<div class="card" style="transform:translateY(${i*5}px)">${c.v}${c.s}</div>`).join("");
-
-    // Player Hands
-    const phDiv = document.getElementById("playerHands");
-    phDiv.innerHTML = "";
-    playerHands.forEach((hand,i)=>{
-        const circle = document.createElement("div");
-        circle.className="hand-circle";
-        if(i===activeHand) circle.classList.add("active");
-        hand.forEach((c,j)=>{
-            const cardDiv = document.createElement("div");
-            cardDiv.className="card";
-            cardDiv.style.transform = `translateY(${-j*10}px)`;
-            cardDiv.innerText = `${c.v}${c.s}`;
-            circle.appendChild(cardDiv);
-        });
-        phDiv.appendChild(circle);
-    });
-}
-
-// -------------------------
-// UPDATE UI
-// -------------------------
-function updateUI(){
-    document.getElementById("balance").innerText = balance;
-    document.getElementById("currentBet").innerText = currentBet;
-}
-</script>
+<script src="game.js"></script>
 </body>
 </html>
