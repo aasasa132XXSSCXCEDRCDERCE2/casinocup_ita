@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Admin Dashboard - Blackjack Torneo</title>
+<style>
+body { font-family: Arial, sans-serif; background:#0b3d1e; color:white; margin:0; padding:0;}
+h1 { text-align:center; margin:20px 0; }
+table { width:90%; margin:0 auto; border-collapse: collapse; }
+th, td { border: 1px solid #fff; padding: 10px; text-align:center; }
+th { background: #2c7a3e; }
+tr:nth-child(even) { background: rgba(255,255,255,0.1);}
+</style>
+</head>
+<body>
+<h1>Blackjack Torneo - Classifica</h1>
+<table>
+    <thead>
+        <tr>
+            <th>Posizione</th>
+            <th>Username</th>
+            <th>Balance (€)</th>
+            <th>Ultima partita</th>
+        </tr>
+    </thead>
+    <tbody id="leaderboard">
+        <!-- Qui verranno inseriti i dati -->
+    </tbody>
+</table>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="firebase.js"></script> <!-- il tuo config di Firebase -->
+
+<script>
+// Riferimento al nodo "players"
+const playersRef = firebase.database().ref('players');
+
+// Funzione per aggiornare la classifica in tempo reale
+playersRef.on('value', snapshot => {
+    const data = snapshot.val();
+    if(!data) return;
+
+    // Ordina i giocatori per balance decrescente
+    const sorted = Object.entries(data).sort((a,b) => b[1].balance - a[1].balance);
+
+    // Aggiorna le posizioni
+    sorted.forEach((entry,index) => entry[1].position = index+1);
+
+    // Mostra in tabella
+    const tbody = document.getElementById('leaderboard');
+    tbody.innerHTML = '';
+    sorted.forEach(([uid, player])=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${player.position}</td>
+            <td>${player.username}</td>
+            <td>${player.balance}</td>
+            <td>${new Date(player.lastPlayed*1000).toLocaleString()}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+});
+</script>
+</body>
+</html>
