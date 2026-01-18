@@ -1,8 +1,7 @@
-// --- Configurazione e variabili principali ---
+// --- Variabili principali ---
 let bankroll = 10000;
 let handsLeft = 30;
 let bet = 0;
-let selectedChip = 0;
 let betHistory = [];
 
 let deck = [];
@@ -13,41 +12,13 @@ let currentHand = 0;
 const suits = ['S','H','D','C'];
 const values = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 const imgs = {};
+
+// Caricamento immagini carte
 suits.forEach(s=>values.forEach(v=>{
     imgs[v+s]=`https://raw.githubusercontent.com/hayeah/playing-cards-assets/master/png/${v}${s}.png`;
 }));
 
-// --- Aggiorna UI ---
-function updateUI(){
-    document.getElementById("bankroll").innerText = bankroll;
-    document.getElementById("hands").innerText = handsLeft;
-    document.getElementById("bet").innerText = bet;
-}
-
-// --- Gestione chip ---
-document.querySelectorAll(".chip").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
-        let val = parseInt(btn.dataset.value);
-        if(bankroll >= val && bet + val <= 1000){ // max 1000
-            bet += val;
-            bankroll -= val;
-            betHistory.push(val);
-            updateUI();
-        }
-    });
-});
-
-// Undo puntata
-document.getElementById("undoBet").addEventListener("click", ()=>{
-    if(betHistory.length>0){
-        let last = betHistory.pop();
-        bet -= last;
-        bankroll += last;
-        updateUI();
-    }
-});
-
-// --- Creazione e gestione mazzo ---
+// --- Funzioni Deck ---
 function createDeck(){
     let d=[];
     suits.forEach(s=>values.forEach(v=>d.push({v,s})));
@@ -63,7 +34,7 @@ function draw(){ return deck.pop(); }
 function score(cs){
     let t=0,a=0;
     cs.forEach(c=>{
-        if(c.v==="A"){t+=11;a++;}
+        if(c.v==="A"){ t+=11; a++; }
         else if("KQJ".includes(c.v)) t+=10;
         else t+=parseInt(c.v);
     });
@@ -71,52 +42,39 @@ function score(cs){
     return t;
 }
 
-// --- Render carte ---
-function render(){
-    show("dealerCards", dealer, true);
-    showPlayerHands();
+// --- Aggiorna UI ---
+function updateUI(){
+    document.getElementById("bankroll").innerText = bankroll;
+    document.getElementById("handsLeft").innerText = handsLeft;
+    document.getElementById("bet").innerText = bet;
 }
 
-function show(id,cards,hide=false){
-    let d=document.getElementById(id); 
-    d.innerHTML="";
-    cards.forEach((c,i)=>{
-        let img=document.createElement("img");
-        img.className="card";
-        img.src = (hide && i===0 && id==="dealerCards")
-            ? "https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/Card_back_01.svg/120px-Card_back_01.svg.png"
-            : imgs[c.v+c.s];
-        img.style.transition = "transform 0.3s ease";
-        img.style.transform = `translateY(-${i*10}px)`;
-        d.appendChild(img);
+// --- Gestione Chips ---
+document.querySelectorAll(".chip").forEach(c=>{
+    c.addEventListener("click", ()=>{
+        let val = parseInt(c.dataset.value);
+        if(bankroll >= val && bet + val <= 1000){
+            bet += val;
+            bankroll -= val;
+            betHistory.push(val);
+            updateUI();
+        }
     });
-}
+});
 
-// Mostra le mani dei giocatori (split visivo)
-function showPlayerHands(){
-    const playerArea = document.getElementById("playerCards");
-    playerArea.innerHTML = "";
+// Undo puntata
+document.getElementById("undoBtn").addEventListener("click", ()=>{
+    if(betHistory.length>0){
+        let last = betHistory.pop();
+        bet -= last;
+        bankroll += last;
+        updateUI();
+    }
+});
 
-    playerHands.forEach((hand,index)=>{
-        let handCircle = document.createElement("div");
-        handCircle.style.display = "inline-flex";
-        handCircle.style.margin = "0 10px";
-        handCircle.style.position = "relative";
-        hand.forEach((c,i)=>{
-            let img = document.createElement("img");
-            img.className="card";
-            img.src = imgs[c.v+c.s];
-            img.style.marginLeft = i===0? "0":"-30px";
-            img.style.transition = "transform 0.3s ease";
-            handCircle.appendChild(img);
-        });
-        playerArea.appendChild(handCircle);
-    });
-}
-
-// --- Azioni Giocatore ---
-function deal(){
-    if(bet < 50){ alert("Puntata minima 50€"); return; }
+// --- Deal ---
+document.getElementById("dealBtn").addEventListener("click", ()=>{
+    if(bet<50){ alert("Puntata minima 50€"); return; }
     if(handsLeft<=0) return;
 
     deck = createDeck(); shuffle(deck);
@@ -124,26 +82,31 @@ function deal(){
     playerHands = [[draw(), draw()]];
     currentHand=0;
     render();
-}
+});
 
-function hit(){
+// --- Hit ---
+document.getElementById("hitBtn").addEventListener("click", ()=>{
     let hand = playerHands[currentHand];
     hand.push(draw());
     if(score(hand)>21) nextHand();
     render();
-}
+});
 
-function stand(){ nextHand(); }
+// --- Stand ---
+document.getElementById("standBtn").addEventListener("click", ()=>{ nextHand(); });
 
-function doubleBet(){
-    if(bankroll < bet) return;
-    bankroll -= bet; bet *= 2;
+// --- Double ---
+document.getElementById("doubleBtn").addEventListener("click", ()=>{
+    if(bankroll<bet) return;
+    bankroll -= bet;
+    bet *= 2;
     playerHands[currentHand].push(draw());
     nextHand();
     updateUI();
-}
+});
 
-function split(){
+// --- Split ---
+document.getElementById("splitBtn").addEventListener("click", ()=>{
     let hand = playerHands[currentHand];
     if(hand.length===2 && hand[0].v===hand[1].v && bankroll>=bet){
         bankroll -= bet;
@@ -153,9 +116,9 @@ function split(){
         render();
         updateUI();
     } else alert("Non puoi splittare");
-}
+});
 
-// --- Gestione mani multiple e risoluzione ---
+// --- Gestione mani ---
 function nextHand(){
     currentHand++;
     if(currentHand>=playerHands.length) resolveDealer();
@@ -164,6 +127,7 @@ function nextHand(){
 
 function resolveDealer(){
     while(score(dealer)<17) dealer.push(draw());
+
     playerHands.forEach(hand=>{
         let p = score(hand);
         let d = score(dealer);
@@ -173,12 +137,44 @@ function resolveDealer(){
 
     handsLeft--;
     sendResultToFirebase();
-    bet=0; 
+    bet=0;
     playerHands=[[]];
     dealer=[];
     betHistory=[];
     updateUI();
     render();
+}
+
+// --- Render ---
+function render(){
+    // Dealer
+    const dealerDiv = document.getElementById("dealerCards");
+    dealerDiv.innerHTML="";
+    dealer.forEach((c,i)=>{
+        let img = document.createElement("img");
+        img.className="card";
+        img.src = (i===0)? "https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/Card_back_01.svg/120px-Card_back_01.svg.png" : imgs[c.v+c.s];
+        img.style.transform = `translateY(-${i*10}px)`;
+        dealerDiv.appendChild(img);
+    });
+
+    // Player Hands
+    const playerArea = document.getElementById("playerHandsArea");
+    playerArea.innerHTML="";
+    playerHands.forEach(hand=>{
+        let handCircle = document.createElement("div");
+        handCircle.style.display = "inline-flex";
+        handCircle.style.gap = "0px";
+        hand.forEach((c,i)=>{
+            let img = document.createElement("img");
+            img.className="card";
+            img.src = imgs[c.v+c.s];
+            img.style.marginLeft = i===0? "0":"-30px";
+            img.style.transform = `translateY(-${i*5}px)`;
+            handCircle.appendChild(img);
+        });
+        playerArea.appendChild(handCircle);
+    });
 }
 
 // --- Invio risultati a Firebase ---
@@ -191,3 +187,6 @@ function sendResultToFirebase(){
         timestamp: Date.now()
     });
 }
+
+// --- Inizializza UI ---
+updateUI();
