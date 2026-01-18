@@ -1,2 +1,2 @@
 enter the best new black jack tournament 
-telegram 
+telegram https://t.me/+vz3dlhBRLnViNjU0
