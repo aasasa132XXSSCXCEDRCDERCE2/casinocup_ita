@@ -100,6 +100,8 @@ function splitHand(){
         hand.push(drawCard());
         playerHands.splice(activeHand+1,0,newHand);
         renderHands();
+    } else {
+        alert("Non puoi splittare");
     }
 }
 
@@ -113,7 +115,7 @@ function hit(){
     renderHands();
 }
 
-function stand(){ nextHand(); }
+function stand(){nextHand();}
 
 function doubleBet(){
     if(balance < currentBet) return alert("Non abbastanza soldi per DOUBLE");
@@ -143,9 +145,9 @@ function resolveDealer(){
         let d = handValue(dealerHand);
 
         if(p>21){} // perde
-        else if(d>21 || p>d){ balance += currentBet*2; } // vince
+        else if(d>21 || p> d){ balance += currentBet*2; } // vince
         else if(p===d){ balance += currentBet; } // pareggio
-        // else perde il bet
+        // else perde
     });
 
     handsLeft--;
@@ -174,17 +176,17 @@ function renderHands(){
         dealerDiv.appendChild(card);
     });
 
-    // Player Hands
+    // Player Hands (split)
     playerDiv.innerHTML = "";
     playerHands.forEach((hand,index)=>{
         const handCircle = document.createElement("div");
         handCircle.style.display="inline-block";
-        handCircle.style.margin="0 10px";
+        handCircle.style.margin="0 5px";
         handCircle.style.padding="10px";
         handCircle.style.border="2px solid #8B4513"; // legno
         handCircle.style.borderRadius="50%";
         handCircle.style.background="#006400"; // felt verde
-        handCircle.style.minWidth="100px";
+        handCircle.style.minWidth="80px";
 
         hand.forEach(c=>{
             const card = document.createElement("div");
