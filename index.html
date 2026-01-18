@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Blackjack Torneo</title>
 <style>
-body {
+  body {
     margin:0;
     font-family: Arial, Helvetica, sans-serif;
-    background:#0b3f1f;
+    background: #0b3f1f;
     color:white;
     display:flex;
     flex-direction:column;
@@ -16,33 +16,33 @@ body {
     justify-content:flex-start;
     height:100vh;
     overflow-x:hidden;
-}
-#table {
+  }
+  #table {
     position:relative;
     width:95%;
     max-width:600px;
     height:90%;
     margin-top:10px;
-    background: linear-gradient(#0f5a34,#07331e);
+    background: linear-gradient(#0f5a34, #07331e);
     border-radius:30px;
     padding:10px;
     box-sizing:border-box;
     display:flex;
     flex-direction:column;
     justify-content:space-between;
-}
-.cards {
+  }
+  .cards {
     display:flex;
     justify-content:center;
     gap:5px;
     min-height:80px;
     margin-bottom:10px;
-}
-.card {
+  }
+  .card {
     width:50px;
     height:70px;
     border-radius:5px;
-    background:#fff;
+    background:#ffffff;
     color:#000;
     display:flex;
     justify-content:center;
@@ -50,18 +50,18 @@ body {
     font-weight:bold;
     font-size:16px;
     box-shadow:0 2px 5px rgba(0,0,0,0.5);
-}
-#dealerArea, #playerArea {
+  }
+  #dealerArea, #playerArea {
     text-align:center;
     margin:5px 0;
-}
-#ui {
+  }
+  #ui {
     display:flex;
     justify-content:space-around;
     flex-wrap:wrap;
     margin-top:10px;
-}
-button, .chip {
+  }
+  button, .chip {
     background:#d4af37;
     border:none;
     padding:8px 14px;
@@ -69,48 +69,51 @@ button, .chip {
     cursor:pointer;
     margin:3px;
     border-radius:5px;
-}
-.chip {
+  }
+  .chip {
     background:#e74c3c;
     width:50px;
     height:50px;
     display:flex;
     justify-content:center;
     align-items:center;
-}
-#chips {
+  }
+  #chips {
     display:flex;
     justify-content:center;
     flex-wrap:wrap;
     margin-top:5px;
-}
-#scores {
+  }
+  #scores {
     display:flex;
     justify-content:space-around;
     margin-bottom:10px;
-}
-@media(max-width:480px){
+  }
+  @media(max-width:480px){
     .card{width:40px;height:60px;font-size:14px;}
     button, .chip{padding:6px 10px;font-size:14px;}
-}
+  }
 </style>
 </head>
 <body>
 
 <div id="table">
 
+  <!-- Dealer -->
   <div id="dealerArea">
     <h3>Dealer</h3>
     <div id="dealerCards" class="cards"></div>
     <div id="dealerScore">Dealer: 0</div>
   </div>
 
+  <!-- Giocatore -->
   <div id="playerArea">
     <h3>Tu</h3>
     <div id="playerCards" class="cards"></div>
     <div id="playerScore">Tu: 0</div>
   </div>
 
+  <!-- Chips -->
   <div id="chips">
     <div class="chip" data-value="50">50</div>
     <div class="chip" data-value="100">100</div>
@@ -118,6 +121,7 @@ button, .chip {
     <div class="chip" data-value="1000">1000</div>
   </div>
 
+  <!-- Controlli -->
   <div id="ui">
     <div>
       <button id="undoBtn">Indietro</button>
