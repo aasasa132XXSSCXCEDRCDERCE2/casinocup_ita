@@ -2,100 +2,211 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
+<title>Blackjack Casinò Pro</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Blackjack Tournament</title>
-
-<!-- Firebase SDK v9+ -->
-<script type="module" src="game.js"></script>
-
 <style>
-*{box-sizing:border-box}
-body{
+body {
     margin:0;
-    font-family:Arial,Helvetica,sans-serif;
-    background:#0f5132;
+    background:#0b3f1f;
+    font-family:'Helvetica', Arial, sans-serif;
     color:white;
     text-align:center;
+    overflow-x:hidden;
 }
-#landing{
+#table {
+    width:100vw;
     height:100vh;
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    align-items:center;
+    position:relative;
+    background: linear-gradient(#0c3a1b, #104222);
+    border:20px solid #003300;
+    border-radius:50px;
+    box-sizing:border-box;
+    padding-top:20px;
 }
-#landing h1{
-    font-size:36px;
-    letter-spacing:2px;
-}
-#landing button{
-    margin-top:20px;
-    padding:14px 40px;
-    font-size:16px;
-    border:none;
-    background:#d4af37;
-    cursor:pointer;
-}
-#game{
-    display:none;
-    padding:15px;
-}
-.area{margin-bottom:25px}
-.cards{display:flex;justify-content:center;flex-wrap:wrap}
-.card{
-    width:60px;
-    height:90px;
-    background:white;
-    border-radius:6px;
-    margin:5px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:20px;
-    color:black;
-}
-.red{color:#b00000}
-button{
-    padding:12px 18px;
-    margin:5px;
-    background:#d4af37;
-    border:none;
-    font-size:14px;
-}
-.info{font-size:14px;margin:5px}
-@media(max-width:600px){
-    .card{width:50px;height:75px;font-size:18px}
-}
+.area { margin-bottom:20px; }
+.cards { display:flex; justify-content:center; margin:10px; height:130px; }
+.card { width:80px; height:120px; border-radius:6px; margin:0 -25px; transition: transform 0.3s ease; }
+.card img { width:100%; height:100%; border-radius:6px; }
+button { background:#d4af37; border:none; padding:10px 20px; margin:5px; font-size:16px; font-weight:bold; cursor:pointer; border-radius:6px; }
+button:active {opacity:0.9;}
+input { width:80px; padding:5px; font-size:14px; text-align:center; border-radius:4px;}
+#dealerArea { margin-bottom:50px; }
+#playerArea { margin-top:30px; }
+.chips { position:absolute; bottom:150px; left:50%; transform:translateX(-50%); display:flex; justify-content:center; }
+.chip { width:40px; height:40px; border-radius:50%; background:red; border:2px solid white; margin:0 2px; display:flex; justify-content:center; align-items:center; font-weight:bold; font-size:14px; color:white; }
 </style>
 </head>
 <body>
 
-<div id="landing">
-    <h1>BLACKJACK TOURNAMENT</h1>
-    <button onclick="startGame()">ENTRA NEL TORNEO</button>
-</div>
-
-<div id="game">
-    <div class="area">
+<div id="table">
+    <div id="dealerArea" class="area">
         <h3>Dealer</h3>
         <div id="dealerCards" class="cards"></div>
-        <div id="dealerScore" class="info"></div>
+        <p id="dealerScore"></p>
     </div>
 
-    <div class="area">
+    <div id="playerArea" class="area">
         <h3>Giocatore</h3>
         <div id="playerCards" class="cards"></div>
-        <div id="playerScore" class="info"></div>
-        <div class="info">Bankroll: €<span id="bankroll"></span></div>
-        <div class="info">Mani rimaste: <span id="handsLeft"></span></div>
+        <p id="playerScore"></p>
+        <p>Mani rimanenti: <span id="handsLeft"></span></p>
+        <p>Bankroll: €<span id="bankroll"></span></p>
+        <p>Puntata: €<input type="number" id="betInput" value="100" min="1"></p>
     </div>
 
-    <div>
-        <button onclick="hit()">HIT</button>
-        <button onclick="stand()">STAND</button>
-        <button onclick="doubleBet()">DOUBLE</button>
-    </div>
+    <div class="chips" id="chipDisplay"></div>
+
+    <button onclick="hit()">HIT</button>
+    <button onclick="stand()">STAND</button>
+    <button onclick="doubleBet()">DOUBLE</button>
+    <button onclick="split()">SPLIT</button>
 </div>
+
+<!-- 🔥 Firebase SDK v9+ -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+import { getDatabase, ref, push } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+
+// 🔹 Config Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyAGFnP6wNzzy3jgvkjXxwpTmRFOpP3HvgU",
+  authDomain: "blackjack-torneo.firebaseapp.com",
+  databaseURL: "https://blackjack-torneo-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "blackjack-torneo",
+  storageBucket: "blackjack-torneo.firebasestorage.app",
+  messagingSenderId: "509149383414",
+  appId: "1:509149383414:web:f5c09acff20306f7bbfad7",
+  measurementId: "G-1NF00DV2HC"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// --- Variabili principali ---
+let deck=[], dealer={cards:[]}, player={hands:[], currentHand:0};
+let bankroll=5000, handsLeft=30, bet=100;
+
+// Carte PNG realistiche
+const suits=['S','H','D','C'];
+const values=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+const cardImages={};
+suits.forEach(s=>{
+    values.forEach(v=>{
+        cardImages[v+s] = `https://raw.githubusercontent.com/hayeah/playing-cards-assets/master/png/${v}${s}.png`;
+    });
+});
+
+// --- Start ---
+startHand();
+
+// ------------------- Funzioni -------------------
+function startHand(){
+    if(handsLeft<=0 || bankroll<=0){
+        endTournament();
+        return;
+    }
+    deck=createDeck(); shuffle(deck);
+    dealer.cards=[draw(), draw()];
+    player.hands=[[draw(), draw()]];
+    player.currentHand=0;
+    bet=parseInt(document.getElementById("betInput").value)||100;
+    render(true);
+    showChips();
+}
+
+function createDeck(){ let d=[]; suits.forEach(s=>values.forEach(v=>d.push({v,s}))); return d; }
+function shuffle(d){ for(let i=d.length-1;i>0;i--){ let j=Math.floor(Math.random()*(i+1)); [d[i],d[j]]=[d[j],d[i]]; } }
+function draw(){ return deck.pop(); }
+function score(cards){
+    let total=0, aces=0;
+    for(let c of cards){
+        if(c.v==="A"){ total+=11; aces++; }
+        else if(["K","Q","J"].includes(c.v)) total+=10;
+        else total+=parseInt(c.v);
+    }
+    while(total>21 && aces>0){ total-=10; aces--; }
+    return total;
+}
+
+// ------------------- Render -------------------
+function render(hideDealer){
+    showCards("dealerCards", dealer.cards, hideDealer);
+    showCards("playerCards", player.hands[player.currentHand]);
+    document.getElementById("playerScore").innerText="Totale: "+score(player.hands[player.currentHand]);
+    document.getElementById("bankroll").innerText=bankroll;
+    document.getElementById("handsLeft").innerText=handsLeft;
+}
+function showCards(id,cards,hide=false){
+    const div=document.getElementById(id); div.innerHTML="";
+    cards.forEach((c,i)=>{
+        const img=document.createElement("img");
+        if(hide && i===0 && id==="dealerCards") img.src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/Card_back_01.svg/120px-Card_back_01.svg.png";
+        else img.src=cardImages[c.v+c.s];
+        div.appendChild(img);
+        setTimeout(()=>{ img.style.transform="translateY(-10px)"; },50*i);
+    });
+}
+
+// ------------------- Chips display -------------------
+function showChips(){
+    const chipDiv=document.getElementById("chipDisplay"); chipDiv.innerHTML="";
+    let count=Math.floor(bet/100);
+    for(let i=0;i<count;i++){
+        const c=document.createElement("div"); c.className="chip"; c.innerText="100"; chipDiv.appendChild(c);
+    }
+}
+
+// ------------------- Azioni -------------------
+window.hit = function(){ const hand=player.hands[player.currentHand]; hand.push(draw()); if(score(hand)>21) nextHandOrEnd(); render(true); showChips();}
+window.stand = function(){ nextHandOrEnd(); }
+window.doubleBet = function(){
+    const hand=player.hands[player.currentHand];
+    if(bankroll>=bet){ bankroll-=bet; bet*=2; hand.push(draw()); nextHandOrEnd(); showChips();}
+    else alert("Non hai abbastanza soldi per il double");
+}
+window.split = function(){
+    const hand=player.hands[player.currentHand];
+    if(hand.length===2 && hand[0].v===hand[1].v && bankroll>=bet){
+        bankroll-=bet;
+        const newHand=[hand.pop(), draw()];
+        hand.push(draw());
+        player.hands.splice(player.currentHand+1,0,newHand);
+        render(true);
+    } else alert("Non puoi splittare");
+}
+
+// ------------------- Fine mano -------------------
+function nextHandOrEnd(){
+    player.currentHand++;
+    if(player.currentHand>=player.hands.length) resolveDealer();
+    else render(true);
+}
+function resolveDealer(){
+    while(score(dealer.cards)<17) dealer.cards.push(draw());
+    player.hands.forEach(hand=>{
+        const pScore=score(hand);
+        const dScore=score(dealer.cards);
+        if(pScore>21) bankroll-=bet;
+        else if(dScore>21 || pScore>dScore) bankroll+=(pScore===21 && hand.length===2)?Math.round(bet*1.5):bet;
+        else if(pScore<dScore) bankroll-=bet;
+    });
+    handsLeft--; startHand();
+}
+
+// ------------------- Fine torneo 🔥 Firebase -------------------
+function endTournament(){
+    const name = prompt("Inserisci il tuo nickname");
+    if(name){
+        const resultsRef = ref(db, "results");
+        push(resultsRef, {
+            name: name,
+            bankroll: bankroll,
+            date: Date.now()
+        });
+    }
+    alert("Torneo finito! Bankroll finale: €"+bankroll);
+}
+</script>
 
 </body>
 </html>
