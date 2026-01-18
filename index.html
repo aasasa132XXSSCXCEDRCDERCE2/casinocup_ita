@@ -2,131 +2,127 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>Blackjack Casinò Realistico</title>
+<title>Blackjack Torneo</title>
 <style>
+/* TAVOLO */
 body {
     margin:0;
+    background:#004d00; /* verde scuro */
     font-family: Arial, Helvetica, sans-serif;
-    background: #0b3d1e; /* verde felt scuro */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
+    color:white;
+    overflow-x:hidden;
 }
-
 #table {
-    width: 95vw;
-    height: 90vh;
-    background: radial-gradient(circle at center, #0f5a34 0%, #07331e 80%);
-    border: 30px solid #8b4513; /* legno bordo */
-    border-radius: 30px;
-    box-shadow: 0 0 30px rgba(0,0,0,0.5);
-    position: relative;
-    padding: 20px;
+    width:100vw;
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    align-items:center;
+    padding:20px;
+    box-sizing:border-box;
 }
-
-/* Dealer e giocatore */
-#dealer, #playerHands {
-    display: flex;
-    justify-content: center;
-    margin: 20px 0;
+/* AREE */
+#dealerCards, #playerCards {
+    display:flex;
+    justify-content:center;
+    flex-wrap: wrap;
+    margin:10px 0;
 }
-
-/* Cerchio per le mani */
-.hand-circle {
-    width: 200px;
-    min-height: 140px;
-    border: 3px solid #d4af37;
-    border-radius: 50%;
-    margin: 0 20px;
-    position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    padding-top: 10px;
-    background: rgba(0,0,0,0.1);
-}
-
-.hand-circle.active {
-    box-shadow: 0 0 20px #ffd700;
-}
-
-/* Carte generate con testo */
 .card {
-    width: 60px;
-    height: 90px;
-    border-radius: 6px;
-    border: 1px solid #fff;
-    background: #ffffff33;
-    color: #fff;
-    font-weight: bold;
-    font-size: 20px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: absolute;
+    width:50px;
+    height:70px;
+    margin:3px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-weight:bold;
+    font-size:16px;
+    border-radius:6px;
+    background:#006400; /* felt verde */
+    border:2px solid #8B4513; /* bordo legno */
 }
-
-/* UI */
-#ui {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    color: white;
-    text-align: center;
+/* CHIP */
+#chips {
+    display:flex;
+    justify-content:center;
+    gap:10px;
+    margin-bottom:15px;
 }
-
-button, .chip {
-    margin: 5px;
-    padding: 8px 14px;
-    font-weight: bold;
-    cursor: pointer;
-    border-radius: 6px;
-    border: none;
-}
-
 .chip {
-    width: 60px;
-    height: 60px;
-    border: 2px solid #fff;
-    border-radius: 50%;
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
+    width:50px;
+    height:50px;
+    border-radius:50%;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-weight:bold;
+    cursor:pointer;
+    border:2px solid white;
 }
-
-.c50{background:#3498db;}
-.c100{background:#e74c3c;}
-.c500{background:#8e44ad;}
-.c1000{background:#f1c40f;color:#000;}
+.c50 {background:#3498db;}
+.c100 {background:#e74c3c;}
+.c500 {background:#8e44ad;}
+.c1000 {background:#f1c40f; color:#000;}
+/* BOTTONI */
+#controls {
+    display:flex;
+    justify-content:center;
+    gap:10px;
+    flex-wrap: wrap;
+    margin-bottom:10px;
+}
+button {
+    background:#d4af37;
+    border:none;
+    padding:10px 20px;
+    font-weight:bold;
+    cursor:pointer;
+    border-radius:6px;
+}
+button:active {opacity:0.9;}
+/* INFO */
+#info {
+    text-align:center;
+    margin-bottom:10px;
+}
+#info span { font-weight:bold; }
 </style>
 </head>
-
 <body>
+
 <div id="table">
-    <div id="dealer"></div>
-    <div id="playerHands"></div>
+    <div id="dealerCards"></div>
 
-    <div id="ui">
-        <div>Bankroll: €<span id="balance">10000</span></div>
-        <div>Mani rimanenti: <span id="hands">30</span></div>
-        <div>Puntata: €<span id="currentBet">0</span></div>
+    <div id="playerCards"></div>
 
-        <div style="margin:10px 0;">
-            <div class="chip c50" data-value="50">50</div>
-            <div class="chip c100" data-value="100">100</div>
-            <div class="chip c500" data-value="500">500</div>
-            <div class="chip c1000" data-value="1000">1000</div>
-        </div>
+    <div id="chips">
+        <div class="chip c50" onclick="selectChip(50)">50</div>
+        <div class="chip c100" onclick="selectChip(100)">100</div>
+        <div class="chip c500" onclick="selectChip(500)">500</div>
+        <div class="chip c1000" onclick="selectChip(1000)">1000</div>
+    </div>
 
-        <button id="deal">Dai carte</button>
-        <button id="hit">Hit</button>
-        <button id="stand">Stand</button>
-        <button id="split">Split</button>
+    <div id="info">
+        Bankroll: €<span id="bankroll">10000</span><br>
+        Mani rimaste: <span id="hands">30</span><br>
+        Puntata attuale: €<span id="bet">0</span>
+    </div>
+
+    <div id="controls">
+        <button id="deal">DEAL</button>
+        <button id="hit">HIT</button>
+        <button id="stand">STAND</button>
+        <button id="double">DOUBLE</button>
+        <button id="split">SPLIT</button>
     </div>
 </div>
 
+<!-- FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="firebase.js"></script>
 <script src="game.js"></script>
+
 </body>
 </html>
