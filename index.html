@@ -2,159 +2,220 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>Blackjack Casinò</title>
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
+<title>Blackjack Realistico</title>
 <style>
-/* ===== BASE ===== */
-*{box-sizing:border-box; touch-action:manipulation}
-body{
-    margin:0;
-    background:#062d1a;
-    font-family:Arial,Helvetica,sans-serif;
-    overflow:hidden;
-    color:white;
+body {
+    margin:0; font-family:Arial,sans-serif; overflow:hidden; background:#333;
 }
-
-/* ===== TAVOLO ===== */
-#table{
-    position:relative;
+#table {
     width:100vw;
     height:100vh;
-    background:radial-gradient(circle at center,#0f5a34 0%,#07331e 70%);
-    border:20px solid #2a1b0f;
-    border-radius:55% 55% 40% 40%;
-}
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    border:50px solid transparent; border-radius:30px;
+    box-shadow:0 0 30px rgba(0,0,0,0.5);
 
-/* ===== CARTE ===== */
-.cards{
-    position:absolute;
-    display:flex;
-    left:50%;
-    transform:translateX(-50%);
-}
-#dealerCards{top:70px;}
-#playerCards{bottom:260px;}
+    /* Bordo legno */
+    border-image: url('https://i.imgur.com/4f7PpG7.jpg') 30 stretch;
 
-.card{
-    width:80px;
-    margin-left:-28px;
-    animation:deal .25s ease-out;
+    /* Felt verde */
+    background: url('https://i.imgur.com/FfMdfzm.jpg') center center / cover no-repeat;
+    position:relative;
 }
-@keyframes deal{
-    from{transform:translateY(-25px);opacity:0}
-    to{transform:translateY(0);opacity:1}
+.dealer, .hands {
+    display:flex; justify-content:center; margin:10px; gap:20px;
 }
-
-/* ===== BET CIRCLE ===== */
-#betCircle{
-    position:absolute;
-    bottom:190px;
-    left:50%;
-    transform:translateX(-50%);
-    width:130px;
-    height:130px;
-    border-radius:50%;
-    border:4px solid #d4af37;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    font-size:20px;
-    font-weight:bold;
+.hand-circle {
+    width:220px; height:160px; border-radius:50%; border:3px solid #d4af37;
+    display:flex; justify-content:center; align-items:center;
+    background: rgba(0,0,0,0.2); position:relative; transition: transform 0.3s ease;
 }
-
-/* ===== CHIPS ===== */
-#chips{
-    position:absolute;
-    bottom:40px;
-    left:50%;
-    transform:translateX(-50%);
-    display:flex;
-    gap:12px;
+.hand-circle.active { box-shadow:0 0 20px #fff; }
+.card {
+    width:60px; height:90px; border-radius:5px; background:white;
+    display:flex; justify-content:center; align-items:center;
+    font-weight:bold; font-size:18px; margin-left:-20px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.5);
+    transition: transform 0.3s ease, top 0.3s ease, left 0.3s ease;
+    position:relative;
 }
-.chip{
-    width:56px;
-    height:56px;
-    border-radius:50%;
-    border:3px solid #fff;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    font-weight:bold;
-    cursor:pointer;
+#chips { position:absolute; bottom:20px; display:flex; gap:10px; }
+.chip { width:50px; height:50px; border-radius:50%; background:#f1c40f;
+    display:flex; justify-content:center; align-items:center; font-weight:bold; cursor:pointer;
 }
-.c50{background:#3498db;}
-.c100{background:#e74c3c;}
-.c500{background:#8e44ad;}
-.c1000{background:#f1c40f;color:#000}
-
-/* ===== UI ===== */
-#ui{
-    position:absolute;
-    top:20px;
-    right:20px;
-    font-size:15px;
-    text-align:right;
-}
-button{
-    background:#d4af37;
-    border:none;
-    padding:7px 12px;
-    font-weight:bold;
-    cursor:pointer;
-    margin-top:6px;
-    border-radius:4px;
-}
-
-/* ===== MOBILE ===== */
-@media(max-width:600px){
-    .card{width:70px}
-    #betCircle{width:115px;height:115px}
-    .chip{width:48px;height:48px;font-size:14px}
-}
+#ui { position:absolute; top:20px; color:white; text-align:right; right:20px; }
+button { background:#d4af37; border:none; padding:8px 14px; margin:2px; cursor:pointer; border-radius:5px; }
 </style>
 </head>
-
 <body>
-
 <div id="table">
+    <div class="dealer" id="dealer"></div>
+    <div class="hands" id="playerHands"></div>
 
-    <!-- Dealer -->
-    <div id="dealerCards" class="cards"></div>
-
-    <!-- Player -->
-    <div id="playerCards" class="cards"></div>
-
-    <!-- Bet -->
-    <div id="betCircle">€<span id="bet">0</span></div>
-
-    <!-- Chips -->
     <div id="chips">
-        <div class="chip c50" onclick="selectChip(50)">50</div>
-        <div class="chip c100" onclick="selectChip(100)">100</div>
-        <div class="chip c500" onclick="selectChip(500)">500</div>
-        <div class="chip c1000" onclick="selectChip(1000)">1000</div>
+        <div class="chip" data-value="50">50</div>
+        <div class="chip" data-value="100">100</div>
+        <div class="chip" data-value="500">500</div>
+        <div class="chip" data-value="1000">1000</div>
     </div>
 
-    <!-- UI -->
     <div id="ui">
-        Bankroll: €<span id="bankroll">5000</span><br>
-        Mani: <span id="hands">30</span><br>
-        <button onclick="deal()">DAI CARTE</button><br>
-        <button onclick="hit()">HIT</button>
-        <button onclick="stand()">STAND</button><br>
-        <button onclick="doubleBet()">DOUBLE</button>
-        <button onclick="split()">SPLIT</button>
+        Bankroll: €<span id="balance">1000</span><br>
+        Puntata: €<span id="currentBet">0</span><br>
+        <button id="deal">DAI CARTE</button>
+        <button id="hit">HIT</button>
+        <button id="stand">STAND</button>
+        <button id="split">SPLIT</button>
     </div>
-
 </div>
 
-<!-- 🔥 FIREBASE -->
-<script type="module" src="firebase.js"></script>
+<script>
+// -------------------------
+// STATO
+// -------------------------
+let balance = 1000;
+let currentBet = 0;
+let deck = [];
+let dealerHand = [];
+let playerHands = [[]];
+let activeHand = 0;
+let gamePhase = "betting"; // betting | playing | finished
 
-<!-- 🎮 GIOCO -->
-<script src="game.js"></script>
+// -------------------------
+// DECK
+// -------------------------
+function createDeck() {
+    const suits = ["♠","♥","♦","♣"];
+    const values = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+    let d = [];
+    for(let s of suits) for(let v of values) d.push({s,v});
+    return d.sort(()=>Math.random()-0.5);
+}
+function drawCard(){ return deck.pop(); }
+function handValue(hand){
+    let total=0, aces=0;
+    for(let c of hand){
+        if(c.v==="A"){total+=11; aces++;}
+        else if(["K","Q","J"].includes(c.v)) total+=10;
+        else total+=parseInt(c.v);
+    }
+    while(total>21 && aces>0){total-=10; aces--;}
+    return total;
+}
 
+// -------------------------
+// CHIP BUTTONS
+// -------------------------
+document.querySelectorAll(".chip").forEach(chip=>{
+    chip.addEventListener("click", ()=>{
+        if(gamePhase!=="betting") return;
+        let val = parseInt(chip.dataset.value);
+        if(balance>=val){ currentBet+=val; balance-=val; updateUI();}
+    });
+});
+
+// -------------------------
+// BUTTONS
+// -------------------------
+document.getElementById("deal").onclick = startGame;
+document.getElementById("hit").onclick = hit;
+document.getElementById("stand").onclick = stand;
+document.getElementById("split").onclick = splitHand;
+
+// -------------------------
+// START GAME
+// -------------------------
+function startGame(){
+    if(currentBet===0) { alert("Seleziona almeno una chip!"); return; }
+    deck = createDeck();
+    dealerHand = [drawCard(), drawCard()];
+    playerHands = [[drawCard(), drawCard()]];
+    activeHand = 0;
+    gamePhase = "playing";
+    render();
+}
+
+// -------------------------
+// SPLIT
+// -------------------------
+function splitHand(){
+    let hand = playerHands[activeHand];
+    if(hand.length!==2) return;
+    if(hand[0].v!==hand[1].v) return;
+    if(balance<currentBet) return;
+    balance -= currentBet;
+    let hand1 = [hand[0], drawCard()];
+    let hand2 = [hand[1], drawCard()];
+    playerHands = [hand1, hand2];
+    activeHand = 0;
+    render();
+}
+
+// -------------------------
+// HIT/STAND
+// -------------------------
+function hit(){
+    playerHands[activeHand].push(drawCard());
+    if(handValue(playerHands[activeHand])>21) nextHand();
+    renderCards();
+}
+function stand(){ nextHand(); }
+
+function nextHand(){
+    if(activeHand<playerHands.length-1){ activeHand++; renderCards(); }
+    else { gamePhase="finished"; dealerPlay(); renderCards(); }
+}
+
+// -------------------------
+// DEALER
+// -------------------------
+function dealerPlay(){
+    while(handValue(dealerHand)<17) dealerHand.push(drawCard());
+    playerHands.forEach(h=>{
+        let hv=handValue(h), dv=handValue(dealerHand);
+        if(hv>21){ /* bust */ }
+        else if(dv>21 || hv>dv) balance += currentBet*2;
+        else if(hv===dv) balance += currentBet;
+    });
+    currentBet=0; gamePhase="betting"; updateUI();
+}
+
+// -------------------------
+// RENDER
+// -------------------------
+function render(){
+    renderCards();
+    updateUI();
+}
+function renderCards(){
+    // Dealer
+    const dealerDiv = document.getElementById("dealer");
+    dealerDiv.innerHTML = dealerHand.map((c,i)=>`<div class="card" style="transform:translateY(${i*5}px)">${c.v}${c.s}</div>`).join("");
+
+    // Player Hands
+    const phDiv = document.getElementById("playerHands");
+    phDiv.innerHTML = "";
+    playerHands.forEach((hand,i)=>{
+        const circle = document.createElement("div");
+        circle.className="hand-circle";
+        if(i===activeHand) circle.classList.add("active");
+        hand.forEach((c,j)=>{
+            const cardDiv = document.createElement("div");
+            cardDiv.className="card";
+            cardDiv.style.transform = `translateY(${-j*10}px)`;
+            cardDiv.innerText = `${c.v}${c.s}`;
+            circle.appendChild(cardDiv);
+        });
+        phDiv.appendChild(circle);
+    });
+}
+
+// -------------------------
+// UPDATE UI
+// -------------------------
+function updateUI(){
+    document.getElementById("balance").innerText = balance;
+    document.getElementById("currentBet").innerText = currentBet;
+}
+</script>
 </body>
 </html>
