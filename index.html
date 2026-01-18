@@ -3,155 +3,142 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Blackjack Pro</title>
-
+<title>Blackjack Casinò Pro</title>
 <style>
-*{box-sizing:border-box}
-body{
+/* --- Body e tavolo --- */
+body {
     margin:0;
-    background:#111;
-    font-family:Arial,Helvetica,sans-serif;
+    font-family: 'Helvetica', Arial, sans-serif;
+    background:#0a3a1f;
+    overflow-x:hidden;
+    display:flex;
+    justify-content:center;
+    align-items:center;
     height:100vh;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    color:white;
 }
-
-#table{
-    width:95vw;
-    max-width:1200px;
-    height:90vh;
-    background:radial-gradient(circle,#1f7a1f 0%,#145214 70%);
-    border:26px solid #6b3e16;
-    border-radius:60px;
-    padding:20px;
+#table {
     position:relative;
+    width:95vw;
+    max-width:1000px;
+    height:90vh;
+    border-radius:40px;
+    background: linear-gradient(to bottom, #0a3a1f 0%, #0c4e28 100%);
+    border:20px solid #5c3b1e; /* bordo legno */
+    box-sizing:border-box;
+    padding:20px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:space-between;
+}
+
+/* --- Dealer e Player --- */
+#dealerArea, #playerArea {
+    width:100%;
     display:flex;
     flex-direction:column;
     align-items:center;
 }
-
-/* INFO */
-#info{
-    position:absolute;
-    top:15px;
-    right:20px;
-    text-align:right;
-}
-
-/* CARDS */
-.cards{
+.cards {
     display:flex;
     justify-content:center;
-    margin-top:10px;
-}
-.card{
-    width:70px;
-    height:100px;
-    background:#fff;
-    border-radius:8px;
-    margin-left:-25px;
-    display:flex;
-    flex-direction:column;
-    justify-content:space-between;
-    padding:6px;
-    font-weight:bold;
-    color:black;
-}
-.red{color:#c0392b}
-
-/* DEALER / PLAYER */
-.section{
-    width:100%;
-    text-align:center;
-}
-.total{
-    margin-top:6px;
-    font-size:16px;
-}
-
-/* PLAYER HANDS */
-#playerArea{
-    display:flex;
-    justify-content:center;
-    gap:30px;
-    margin-top:10px;
-}
-.hand{
-    border:2px dashed rgba(255,255,255,.4);
-    padding:10px;
-    border-radius:50%;
-}
-
-/* ACTIONS */
-#actions{
     margin:10px 0;
 }
-#actions button{
-    padding:10px 16px;
-    margin:4px;
+.card {
+    width:70px;
+    height:100px;
+    border-radius:8px;
+    background:linear-gradient(135deg,#fff,#eee);
+    border:2px solid #000;
+    display:flex;
+    justify-content:center;
+    align-items:center;
     font-weight:bold;
-    background:#d4af37;
-    border:none;
-    border-radius:6px;
-    cursor:pointer;
+    font-size:18px;
+    margin-left:-25px;
+    position:relative;
 }
 
-/* BET */
-#betBox{
-    font-size:18px;
+/* --- Info --- */
+#info {
+    color:white;
+    text-align:center;
     margin-bottom:10px;
 }
+#info span { font-weight:bold; }
 
-/* CHIPS */
-#chips{
-    position:absolute;
-    bottom:20px;
+/* --- Tasti azione --- */
+#actions {
     display:flex;
+    justify-content:center;
     gap:10px;
+    margin-top:10px;
 }
-.chip{
-    width:60px;
-    height:60px;
+button {
+    padding:10px 18px;
+    font-weight:bold;
+    border-radius:6px;
+    border:none;
+    cursor:pointer;
+    background:#d4af37;
+}
+button:active { opacity:0.9; }
+
+/* --- Chips --- */
+#chips {
+    display:flex;
+    justify-content:center;
+    gap:10px;
+    margin-top:10px;
+}
+.chip {
+    width:50px;
+    height:50px;
     border-radius:50%;
     display:flex;
     justify-content:center;
     align-items:center;
     font-weight:bold;
-    border:3px solid #fff;
     cursor:pointer;
+    color:white;
+    border:2px solid white;
 }
-.c50{background:#3498db}
-.c100{background:#e74c3c}
-.c500{background:#8e44ad}
-.c1000{background:#f1c40f;color:black}
+.c50{background:#3498db;}
+.c100{background:#e74c3c;}
+.c500{background:#8e44ad;}
+.c1000{background:#f1c40f;color:#000;}
+#undoBtn { background:#888; color:white; }
+
 </style>
 </head>
-
 <body>
 
 <div id="table">
 
+    <div id="dealerArea">
+        <div id="dealerInfo" class="cards"></div>
+        <div id="dealerScore" class="cards"></div>
+    </div>
+
+    <div id="playerArea">
+        <div id="playerHandsArea" class="cards"></div>
+        <div id="playerScore" class="cards"></div>
+    </div>
+
     <div id="info">
-        Bankroll: €<span id="bankroll">10000</span><br>
-        Mani: <span id="handsLeft">30</span>
+        Bankroll: €<span id="bankroll">10000</span> |
+        Mani rimaste: <span id="handsLeft">30</span> |
+        Puntata: €<span id="bet">0</span>
     </div>
 
-    <!-- DEALER -->
-    <div class="section">
-        <h3>Dealer</h3>
-        <div id="dealerCards" class="cards"></div>
-        <div id="dealerTotal" class="total"></div>
+    <div id="chips">
+        <div class="chip c50" data-value="50">50</div>
+        <div class="chip c100" data-value="100">100</div>
+        <div class="chip c500" data-value="500">500</div>
+        <div class="chip c1000" data-value="1000">1000</div>
+        <button id="undoBtn">INDIETRO</button>
     </div>
 
-    <!-- PLAYER -->
-    <div class="section">
-        <h3>Giocatore</h3>
-        <div id="playerArea"></div>
-    </div>
-
-    <!-- ACTIONS -->
     <div id="actions">
         <button id="dealBtn">DEAL</button>
         <button id="hitBtn">HIT</button>
@@ -160,19 +147,14 @@ body{
         <button id="splitBtn">SPLIT</button>
     </div>
 
-    <div id="betBox">Puntata: €<span id="bet">0</span></div>
-
-    <!-- CHIPS -->
-    <div id="chips">
-        <div class="chip c50" data-value="50">50</div>
-        <div class="chip c100" data-value="100">100</div>
-        <div class="chip c500" data-value="500">500</div>
-        <div class="chip c1000" data-value="1000">1000</div>
-        <button id="undoBtn">UNDO</button>
-    </div>
-
 </div>
 
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="firebase.js"></script>
 <script src="game.js"></script>
+
 </body>
 </html>
