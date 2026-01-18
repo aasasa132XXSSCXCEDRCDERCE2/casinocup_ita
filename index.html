@@ -2,112 +2,148 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Blackjack Casinò</title>
+<title>Blackjack Torneo</title>
 <style>
+/* --- Corpo e tavolo --- */
 body {
     margin:0;
-    font-family:'Helvetica', Arial, sans-serif;
-    background:#0a3a1f;
+    font-family: Arial, Helvetica, sans-serif;
+    background:#2a2a2a;
     display:flex;
     justify-content:center;
     align-items:center;
     height:100vh;
-    overflow-x:hidden;
 }
 #table {
-    position:relative;
-    width:95vw;
-    max-width:1000px;
-    height:90vh;
-    border-radius:40px;
-    background:linear-gradient(to bottom,#0a3a1f 0%,#0c4e28 100%);
-    border:20px solid #5c3b1e; /* legno */
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:space-between;
-    padding:20px;
+    position: relative;
+    width: 900px;
+    height: 600px;
+    background: radial-gradient(circle at center, #0b5c2a 0%, #07331e 90%);
+    border: 20px solid #5a3d1a;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: 20px;
 }
 
-/* Dealer & Player */
-#dealerArea, #playerArea {width:100%; display:flex; flex-direction:column; align-items:center;}
-.cards {display:flex; justify-content:center; margin:10px 0;}
+/* --- Dealer --- */
+#dealerArea {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 30px;
+}
+#dealerCards {
+    display: flex;
+    gap: 5px;
+}
+#dealerScore {
+    margin-top: 5px;
+    font-weight: bold;
+    color:white;
+}
+
+/* --- Player --- */
+#playerHandsArea {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+}
 .card {
-    width:70px; height:100px; border-radius:8px;
-    background:#f4f4f4;
-    border:2px solid #000;
-    display:flex; justify-content:center; align-items:center;
-    font-weight:bold; font-size:20px; margin-left:-25px; position:relative;
-    color:black;
+    width: 60px;
+    height: 90px;
+    border-radius: 6px;
+    background: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    font-size: 18px;
+    color: black;
+    border: 1px solid #000;
 }
-.red {color:red;}
-.black {color:black;}
 
-/* Info */
-#info {color:white; text-align:center; margin-bottom:10px;}
-#info span { font-weight:bold; }
+/* --- Chips --- */
+#chipsContainer {
+    display:flex;
+    gap:10px;
+    position:absolute;
+    bottom:20px;
+}
+.chip {
+    width:60px; height:60px;
+    border-radius:50%;
+    background:#d4af37;
+    border:2px solid #fff;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-weight:bold;
+    cursor:pointer;
+}
 
-/* Chips */
-#chips {display:flex; justify-content:center; gap:10px; margin-top:10px;}
-.chip {width:50px; height:50px; border-radius:50%; display:flex; justify-content:center; align-items:center; font-weight:bold; cursor:pointer; color:white; border:2px solid white;}
-.c50{background:#3498db;} .c100{background:#e74c3c;} .c500{background:#8e44ad;} .c1000{background:#f1c40f;color:#000;}
-#undoBtn { background:#888; color:white; }
+/* --- Pannello UI --- */
+#ui {
+    display:flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    margin-top: 20px;
+}
+button {
+    padding: 6px 12px;
+    margin: 3px;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 4px;
+    border:none;
+    background:#d4af37;
+    color:#000;
+}
 
-/* Actions */
-#actions {display:flex; justify-content:center; gap:10px; margin-top:10px;}
-button {padding:10px 18px; font-weight:bold; border-radius:6px; border:none; cursor:pointer; background:#d4af37;}
-button:active {opacity:0.9;}
+/* Undo puntata */
+#undoBtn { background:#e74c3c; color:#fff; }
 </style>
 </head>
 <body>
 
 <div id="table">
-
     <!-- Dealer -->
     <div id="dealerArea">
-        <div id="dealerCards" class="cards"></div>
-        <div id="dealerScore"></div>
+        <div id="dealerCards"></div>
+        <div id="dealerScore">Dealer: ?</div>
     </div>
 
     <!-- Player -->
-    <div id="playerArea">
-        <div id="playerHandsArea" class="cards"></div>
-        <div id="playerScore"></div>
-    </div>
+    <div id="playerHandsArea"></div>
+    <div id="playerScore" style="color:white;font-weight:bold;margin-top:10px;">Totale: 0</div>
 
-    <!-- Info -->
-    <div id="info">
-        Bankroll: €<span id="bankroll">10000</span> |
-        Mani rimaste: <span id="handsLeft">30</span> |
-        Puntata: €<span id="bet">0</span>
-    </div>
-
-    <!-- Chips -->
-    <div id="chips">
-        <div class="chip c50" data-value="50">50</div>
-        <div class="chip c100" data-value="100">100</div>
-        <div class="chip c500" data-value="500">500</div>
-        <div class="chip c1000" data-value="1000">1000</div>
-        <button id="undoBtn">INDIETRO</button>
-    </div>
-
-    <!-- Azioni -->
-    <div id="actions">
+    <!-- UI -->
+    <div id="ui">
+        Bankroll: €<span id="bankroll">10000</span> | Mani rimaste: <span id="handsLeft">30</span> | Puntata: €<span id="bet">0</span><br>
         <button id="dealBtn">DEAL</button>
         <button id="hitBtn">HIT</button>
         <button id="standBtn">STAND</button>
         <button id="doubleBtn">DOUBLE</button>
         <button id="splitBtn">SPLIT</button>
+        <button id="undoBtn">UNDO</button>
     </div>
 
+    <!-- Chips -->
+    <div id="chipsContainer">
+        <div class="chip" data-value="50">50</div>
+        <div class="chip" data-value="100">100</div>
+        <div class="chip" data-value="500">500</div>
+        <div class="chip" data-value="1000">1000</div>
+    </div>
 </div>
 
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 <script src="firebase.js"></script>
 <script src="game.js"></script>
 
