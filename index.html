@@ -11,22 +11,19 @@ body{
     margin:0;
     background:#111;
     font-family:Arial,Helvetica,sans-serif;
+    height:100vh;
     display:flex;
     justify-content:center;
     align-items:center;
-    height:100vh;
     color:white;
 }
 
-/* TAVOLO */
 #table{
     width:95vw;
     max-width:1200px;
     height:90vh;
-    background:
-        radial-gradient(circle at center,#1f7a1f 0%,#145214 65%),
-        linear-gradient(#7a4a1d,#5a3714);
-    border:28px solid #6b3e16;
+    background:radial-gradient(circle,#1f7a1f 0%,#145214 70%);
+    border:26px solid #6b3e16;
     border-radius:60px;
     padding:20px;
     position:relative;
@@ -35,42 +32,59 @@ body{
     align-items:center;
 }
 
-/* DEALER */
-#dealerArea{
-    height:25%;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-}
-.cards{
-    display:flex;
-}
-.card{
-    width:80px;
-    margin-left:-30px;
-    border-radius:6px;
-    box-shadow:0 4px 8px rgba(0,0,0,.6);
+/* INFO */
+#info{
+    position:absolute;
+    top:15px;
+    right:20px;
+    text-align:right;
 }
 
-/* PLAYER */
-#playerArea{
-    height:30%;
+/* CARDS */
+.cards{
     display:flex;
     justify-content:center;
-    align-items:center;
-    gap:40px;
+    margin-top:10px;
+}
+.card{
+    width:70px;
+    height:100px;
+    background:#fff;
+    border-radius:8px;
+    margin-left:-25px;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    padding:6px;
+    font-weight:bold;
+    color:black;
+}
+.red{color:#c0392b}
+
+/* DEALER / PLAYER */
+.section{
+    width:100%;
+    text-align:center;
+}
+.total{
+    margin-top:6px;
+    font-size:16px;
+}
+
+/* PLAYER HANDS */
+#playerArea{
+    display:flex;
+    justify-content:center;
+    gap:30px;
+    margin-top:10px;
 }
 .hand{
     border:2px dashed rgba(255,255,255,.4);
-    padding:15px;
+    padding:10px;
     border-radius:50%;
-    min-width:200px;
-    min-height:140px;
-    display:flex;
-    justify-content:center;
 }
 
-/* AZIONI */
+/* ACTIONS */
 #actions{
     margin:10px 0;
 }
@@ -83,17 +97,11 @@ body{
     border-radius:6px;
     cursor:pointer;
 }
-#actions button:disabled{
-    opacity:.4;
-    cursor:not-allowed;
-}
 
-/* INFO */
-#info{
-    position:absolute;
-    top:15px;
-    right:20px;
-    text-align:right;
+/* BET */
+#betBox{
+    font-size:18px;
+    margin-bottom:10px;
 }
 
 /* CHIPS */
@@ -101,7 +109,7 @@ body{
     position:absolute;
     bottom:20px;
     display:flex;
-    gap:12px;
+    gap:10px;
 }
 .chip{
     width:60px;
@@ -111,20 +119,13 @@ body{
     justify-content:center;
     align-items:center;
     font-weight:bold;
+    border:3px solid #fff;
     cursor:pointer;
-    border:3px solid white;
 }
 .c50{background:#3498db}
 .c100{background:#e74c3c}
 .c500{background:#8e44ad}
 .c1000{background:#f1c40f;color:black}
-
-#betBox{
-    position:absolute;
-    bottom:95px;
-    font-size:20px;
-}
-
 </style>
 </head>
 
@@ -132,21 +133,25 @@ body{
 
 <div id="table">
 
-    <!-- INFO -->
     <div id="info">
         Bankroll: €<span id="bankroll">10000</span><br>
         Mani: <span id="handsLeft">30</span>
     </div>
 
     <!-- DEALER -->
-    <div id="dealerArea">
+    <div class="section">
+        <h3>Dealer</h3>
         <div id="dealerCards" class="cards"></div>
+        <div id="dealerTotal" class="total"></div>
     </div>
 
     <!-- PLAYER -->
-    <div id="playerArea"></div>
+    <div class="section">
+        <h3>Giocatore</h3>
+        <div id="playerArea"></div>
+    </div>
 
-    <!-- AZIONI -->
+    <!-- ACTIONS -->
     <div id="actions">
         <button id="dealBtn">DEAL</button>
         <button id="hitBtn">HIT</button>
@@ -155,7 +160,6 @@ body{
         <button id="splitBtn">SPLIT</button>
     </div>
 
-    <!-- BET -->
     <div id="betBox">Puntata: €<span id="bet">0</span></div>
 
     <!-- CHIPS -->
