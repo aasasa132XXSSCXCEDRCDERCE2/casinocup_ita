@@ -1,30 +1,26 @@
 // -------------------------
 // STATO DEL GIOCO
 // -------------------------
-let balance = 10000;      // bankroll iniziale
-let currentBet = 0;        // puntata corrente
+let balance = 10000;
+let currentBet = 0;
 let deck = [];
 let dealerHand = [];
 let playerHands = [[]];
 let activeHand = 0;
 let gamePhase = "betting"; // betting | playing | finished
-let remainingHands = 30;   // numero totale di mani
-
-// -------------------------
-// LIMITI PUNTATA
-// -------------------------
 const MIN_BET = 50;
 const MAX_BET = 1000;
+let handsLeft = 30;
 
 // -------------------------
-// CREAZIONE E GESTIONE MAZZO
+// CREAZIONE MAZZO
 // -------------------------
 const suits = ["♠","♥","♦","♣"];
 const values = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
 
-function createDeck() {
-    let d = [];
-    suits.forEach(s => values.forEach(v => d.push({v,s})));
+function createDeck(){
+    let d=[];
+    suits.forEach(s=>values.forEach(v=>d.push({v,s})));
     return d.sort(()=>Math.random()-0.5); // shuffle semplice
 }
 
@@ -42,26 +38,32 @@ function handValue(hand){
 }
 
 // -------------------------
+// FIREBASE DATABASE
+// -------------------------
+const dbRef = firebase.database().ref("blackjack/players");
+
+function sendResultToFirebase(){
+    const playerId = localStorage.getItem("playerId") || Date.now().toString();
+    localStorage.setItem("playerId", playerId);
+
+    dbRef.child(playerId).set({
+        balance: balance,
+        handsLeft: handsLeft,
+        timestamp: Date.now()
+    });
+}
+
+// -------------------------
 // GESTIONE CHIP
 // -------------------------
-document.querySelectorAll(".chip").forEach(chip=>{
-    chip.addEventListener("click", ()=>{
-        if(gamePhase!=="betting") return;
-        let val = parseInt(chip.dataset.value);
-
-        // Limita puntata
-        if(currentBet + val > MAX_BET) {
-            alert(`Puntata massima per mano: €${MAX_BET}`);
-            return;
-        }
-
-        if(balance>=val){
-            currentBet+=val; 
-            balance-=val; 
-            updateUI();
-        }
-    });
-});
+function selectChip(val){
+    if(gamePhase!=="betting") return;
+    if(balance < val) return alert("Non hai abbastanza soldi!");
+    if(currentBet + val > MAX_BET) return alert("Puntata massima: €"+MAX_BET);
+    balance -= val;
+    currentBet += val;
+    updateUI();
+}
 
 // -------------------------
 // BOTTONI
@@ -69,130 +71,136 @@ document.querySelectorAll(".chip").forEach(chip=>{
 document.getElementById("deal").onclick = startGame;
 document.getElementById("hit").onclick = hit;
 document.getElementById("stand").onclick = stand;
+document.getElementById("double").onclick = doubleBet;
 document.getElementById("split").onclick = splitHand;
 
 // -------------------------
 // INIZIO PARTITA
 // -------------------------
 function startGame(){
-    if(currentBet < MIN_BET){ 
-        alert(`Puntata minima: €${MIN_BET}`); 
-        return; 
-    }
-    if(remainingHands <= 0){
-        alert("Hai finito tutte le mani!");
-        return;
-    }
+    if(currentBet < MIN_BET){ alert("Puntata minima: €"+MIN_BET); return; }
+    if(handsLeft<=0){ alert("Hai finito tutte le mani!"); return; }
 
     deck = createDeck();
     dealerHand = [drawCard(), drawCard()];
     playerHands = [[drawCard(), drawCard()]];
     activeHand = 0;
     gamePhase = "playing";
-    render();
+    renderHands();
 }
 
 // -------------------------
-// SPLIT MANI
+// SPLIT
 // -------------------------
 function splitHand(){
     let hand = playerHands[activeHand];
-    if(hand.length!==2) return;
-    if(hand[0].v!==hand[1].v) return;
-    if(balance < currentBet){
-        alert("Non hai abbastanza soldi per split");
-        return;
+    if(hand.length===2 && hand[0].v===hand[1].v && balance >= currentBet){
+        balance -= currentBet;
+        let newHand = [hand.pop(), drawCard()];
+        hand.push(drawCard());
+        playerHands.splice(activeHand+1,0,newHand);
+        renderHands();
     }
-
-    balance -= currentBet; // paga seconda mano
-    let hand1 = [hand[0], drawCard()];
-    let hand2 = [hand[1], drawCard()];
-    playerHands = [hand1, hand2];
-    activeHand = 0;
-    render();
 }
 
 // -------------------------
-// HIT / STAND
+// AZIONI
 // -------------------------
 function hit(){
-    playerHands[activeHand].push(drawCard());
-    if(handValue(playerHands[activeHand])>21) nextHand();
-    renderCards();
+    let hand = playerHands[activeHand];
+    hand.push(drawCard());
+    if(handValue(hand)>21) nextHand();
+    renderHands();
 }
 
 function stand(){ nextHand(); }
 
-function nextHand(){
-    if(activeHand < playerHands.length - 1){
-        activeHand++;
-        renderCards();
-    } else {
-        gamePhase="finished";
-        dealerPlay();
-        renderCards();
-    }
+function doubleBet(){
+    if(balance < currentBet) return alert("Non abbastanza soldi per DOUBLE");
+    balance -= currentBet;
+    currentBet *= 2;
+    playerHands[activeHand].push(drawCard());
+    nextHand();
 }
 
 // -------------------------
-// GIOCO DEALER
+// PASSA ALLA MANO SUCCESSIVA
 // -------------------------
-function dealerPlay(){
+function nextHand(){
+    activeHand++;
+    if(activeHand >= playerHands.length) resolveDealer();
+    else renderHands();
+}
+
+// -------------------------
+// RISOLUZIONE
+// -------------------------
+function resolveDealer(){
     while(handValue(dealerHand)<17) dealerHand.push(drawCard());
 
     playerHands.forEach(hand=>{
-        let hv = handValue(hand);
-        let dv = handValue(dealerHand);
+        let p = handValue(hand);
+        let d = handValue(dealerHand);
 
-        if(hv>21){ /* bust */ }
-        else if(dv>21 || hv>dv) balance += currentBet*2; // vincita
-        else if(hv===dv) balance += currentBet;           // pareggio
+        if(p>21){} // perde
+        else if(d>21 || p>d){ balance += currentBet*2; } // vince
+        else if(p===d){ balance += currentBet; } // pareggio
+        // else perde il bet
     });
 
+    handsLeft--;
     currentBet = 0;
-    remainingHands--;
+    playerHands = [[]];
+    activeHand = 0;
     gamePhase = "betting";
+    renderHands();
     updateUI();
+    sendResultToFirebase(); // invia risultati
 }
 
 // -------------------------
-// RENDER
+// RENDERING DELLE MANI
 // -------------------------
-function render(){
-    renderCards();
-    updateUI();
-}
+function renderHands(){
+    const dealerDiv = document.getElementById("dealerCards");
+    const playerDiv = document.getElementById("playerCards");
 
-function renderCards(){
     // Dealer
-    const dealerDiv = document.getElementById("dealer");
-    dealerDiv.innerHTML = dealerHand.map((c,i)=>`<div class="card" style="transform:translateY(${i*5}px)">${c.v}${c.s}</div>`).join("");
+    dealerDiv.innerHTML = "";
+    dealerHand.forEach((c,i)=>{
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerText = (i===0 && gamePhase==="playing") ? "?" : c.v+c.s;
+        dealerDiv.appendChild(card);
+    });
 
     // Player Hands
-    const phDiv = document.getElementById("playerHands");
-    phDiv.innerHTML = "";
-    playerHands.forEach((hand,i)=>{
-        const circle = document.createElement("div");
-        circle.className="hand-circle";
-        if(i===activeHand) circle.classList.add("active");
+    playerDiv.innerHTML = "";
+    playerHands.forEach((hand,index)=>{
+        const handCircle = document.createElement("div");
+        handCircle.style.display="inline-block";
+        handCircle.style.margin="0 10px";
+        handCircle.style.padding="10px";
+        handCircle.style.border="2px solid #8B4513"; // legno
+        handCircle.style.borderRadius="50%";
+        handCircle.style.background="#006400"; // felt verde
+        handCircle.style.minWidth="100px";
 
-        hand.forEach((c,j)=>{
-            const cardDiv = document.createElement("div");
-            cardDiv.className="card";
-            cardDiv.style.transform = `translateY(${-j*10}px)`;
-            cardDiv.innerText = `${c.v}${c.s}`;
-            circle.appendChild(cardDiv);
+        hand.forEach(c=>{
+            const card = document.createElement("div");
+            card.className="card";
+            card.innerText = c.v+c.s;
+            handCircle.appendChild(card);
         });
-
-        phDiv.appendChild(circle);
+        playerDiv.appendChild(handCircle);
     });
 }
 
 // -------------------------
-// UPDATE UI
+// AGGIORNA UI
 // -------------------------
 function updateUI(){
-    document.getElementById("balance").innerText = balance;
-    document.getElementById("currentBet").innerText = currentBet;
-    document.getElementById("hands").innerText = remainingHands;
+    document.getElementById("bankroll").innerText = balance;
+    document.getElementById("hands").innerText = handsLeft;
+    document.getElementById("bet").innerText = currentBet;
 }
