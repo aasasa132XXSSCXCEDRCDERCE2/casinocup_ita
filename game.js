@@ -1,6 +1,4 @@
-// ================================
-// --- VARIABILI PRINCIPALI ---
-// ================================
+// --- Variabili principali ---
 let bankroll = 10000;
 let handsLeft = 30;
 let bet = 0;
@@ -9,34 +7,33 @@ let deck = [];
 let dealer = [];
 let playerHands = [[]];
 let currentHand = 0;
-let gameSeed = Math.random().toString(36).substring(2,12); // anti-cheat seed
 
+// Semi e valori carte
 const suits = ['S','H','D','C'];
 const values = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 
-// ================================
-// --- CREAZIONE CARTE (CSS REALISTICO) ---
-// ================================
-function createDeck() {
+// --- Creazione deck ---
+function createDeck(){
     let d = [];
     suits.forEach(s => values.forEach(v => d.push({v,s})));
     return d;
 }
 
-function shuffle(d) {
+// --- Mischia deck ---
+function shuffle(d){
     for(let i=d.length-1;i>0;i--){
-        const j = Math.floor(Math.random()*(i+1));
+        let j = Math.floor(Math.random()*(i+1));
         [d[i], d[j]] = [d[j], d[i]];
     }
 }
 
-function draw(){
-    return deck.pop();
-}
+// --- Pesca carta ---
+function draw(){ return deck.pop(); }
 
-function score(cards){
-    let total=0, aces=0;
-    cards.forEach(c=>{
+// --- Calcolo punteggio mano ---
+function score(hand){
+    let total = 0, aces = 0;
+    hand.forEach(c=>{
         if(c.v==="A"){ total+=11; aces++; }
         else if("KQJ".includes(c.v)) total+=10;
         else total+=parseInt(c.v);
@@ -45,22 +42,18 @@ function score(cards){
     return total;
 }
 
-// ================================
-// --- UI UPDATE ---
-// ================================
+// --- Aggiorna UI ---
 function updateUI(){
     document.getElementById("bankroll").innerText = bankroll;
     document.getElementById("handsLeft").innerText = handsLeft;
     document.getElementById("bet").innerText = bet;
 }
 
-// ================================
-// --- GESTIONE CHIPS ---
-// ================================
+// --- Gestione Chips ---
 document.querySelectorAll(".chip").forEach(c=>{
     c.addEventListener("click", ()=>{
         let val = parseInt(c.dataset.value);
-        if(bankroll >= val && bet + val <= 1000){
+        if(bankroll>=val && bet+val <= 1000){
             bet += val;
             bankroll -= val;
             betHistory.push(val);
@@ -69,6 +62,7 @@ document.querySelectorAll(".chip").forEach(c=>{
     });
 });
 
+// --- Undo puntata ---
 document.getElementById("undoBtn").addEventListener("click", ()=>{
     if(betHistory.length>0){
         let last = betHistory.pop();
@@ -78,29 +72,20 @@ document.getElementById("undoBtn").addEventListener("click", ()=>{
     }
 });
 
-// ================================
 // --- DEAL ---
-// ================================
 document.getElementById("dealBtn").addEventListener("click", ()=>{
     if(bet<50){ alert("Puntata minima 50€"); return; }
     if(handsLeft<=0) return;
-
     deck = createDeck();
     shuffle(deck);
-
     dealer = [draw(), draw()];
     playerHands = [[draw(), draw()]];
-    currentHand = 0;
-
-    // Nascondi chips
-    document.getElementById("chipsContainer").style.display="none";
-
+    currentHand=0;
+    hideChips();
     render();
 });
 
-// ================================
-// --- AZIONI GIOCATORE ---
-// ================================
+// --- HIT ---
 document.getElementById("hitBtn").addEventListener("click", ()=>{
     let hand = playerHands[currentHand];
     hand.push(draw());
@@ -108,20 +93,22 @@ document.getElementById("hitBtn").addEventListener("click", ()=>{
     render();
 });
 
+// --- STAND ---
 document.getElementById("standBtn").addEventListener("click", ()=>{
     nextHand();
 });
 
+// --- DOUBLE ---
 document.getElementById("doubleBtn").addEventListener("click", ()=>{
-    if(bankroll<bet){ alert("Saldo insufficiente per double"); return; }
+    if(bankroll<bet) return;
     bankroll -= bet;
     bet *= 2;
     let hand = playerHands[currentHand];
     hand.push(draw());
     nextHand();
-    updateUI();
 });
 
+// --- SPLIT ---
 document.getElementById("splitBtn").addEventListener("click", ()=>{
     let hand = playerHands[currentHand];
     if(hand.length===2 && hand[0].v===hand[1].v && bankroll>=bet){
@@ -134,112 +121,95 @@ document.getElementById("splitBtn").addEventListener("click", ()=>{
     } else alert("Non puoi splittare");
 });
 
-// ================================
-// --- GESTIONE MANO ---
-// ================================
+// --- Nasconde chips dopo DEAL ---
+function hideChips(){
+    document.getElementById("chips").style.display="none";
+}
+
+// --- Mostra chips per nuova mano ---
+function showChips(){
+    document.getElementById("chips").style.display="flex";
+}
+
+// --- Passa alla mano successiva ---
 function nextHand(){
     currentHand++;
-    if(currentHand>=playerHands.length) dealerPlay();
+    if(currentHand>=playerHands.length) resolveDealer();
     else render();
 }
 
-// ================================
-// --- DEALE PLAY ---
-// ================================
-function dealerPlay(){
+// --- Dealer automatico ---
+function resolveDealer(){
     while(score(dealer)<17) dealer.push(draw());
-
     playerHands.forEach(hand=>{
         let p = score(hand);
         let d = score(dealer);
-
-        if(p>21){} // perso
+        if(p>21){}
         else if(d>21 || p>d) bankroll += (p===21 && hand.length===2)? Math.floor(bet*2.5): bet*2;
-        else if(p<d){} // perso
-        else if(p===d) bankroll += bet; // push
     });
-
     handsLeft--;
     sendResultToFirebase();
-
-    // Reset per la prossima mano
-    bet = 0;
-    playerHands = [[]];
-    dealer = [];
-    currentHand = 0;
-    betHistory = [];
-
-    // Rimuovi azioni e mostra chips
-    document.getElementById("chipsContainer").style.display="flex";
-
-    updateUI();
-    render();
+    resetHand();
 }
 
-// ================================
-// --- RENDER CARTE ---
-// ================================
+// --- Reset mano ---
+function resetHand(){
+    bet=0;
+    playerHands=[[]];
+    dealer=[];
+    betHistory=[];
+    updateUI();
+    render();
+    showChips();
+}
+
+// --- Render ---
 function render(){
     // Dealer
     const dealerDiv = document.getElementById("dealerCards");
     dealerDiv.innerHTML="";
     dealer.forEach((c,i)=>{
-        const card = document.createElement("div");
-        card.className="card";
-        card.innerText = c.v + c.s;
-        card.style.top = `${i*10}px`;
-        dealerDiv.appendChild(card);
+        const cardDiv = document.createElement("div");
+        cardDiv.className="card";
+        cardDiv.innerText = (i===0 && playerHands[currentHand]) ? "?" : c.v+c.s;
+        const spanScore = document.getElementById("dealerScore");
+        spanScore.innerText = (i===0 && playerHands[currentHand]) ? "" : "Totale: "+score(dealer);
+        dealerDiv.appendChild(cardDiv);
     });
-
-    // Giocatore
-    const playerArea = document.getElementById("playerHandsArea");
-    playerArea.innerHTML="";
+    // Player
+    const playerDiv = document.getElementById("playerHandsArea");
+    playerDiv.innerHTML="";
     playerHands.forEach(hand=>{
-        const handDiv = document.createElement("div");
-        handDiv.style.display="inline-flex";
-        handDiv.style.gap="5px";
+        const handCircle = document.createElement("div");
+        handCircle.style.display="inline-flex";
+        handCircle.style.gap="0px";
         hand.forEach((c,i)=>{
-            const card = document.createElement("div");
-            card.className="card";
-            card.innerText=c.v+c.s;
-            card.style.marginLeft=i===0?"0":"-20px";
-            handDiv.appendChild(card);
+            const cardDiv = document.createElement("div");
+            cardDiv.className="card";
+            cardDiv.innerText = c.v+c.s;
+            handCircle.appendChild(cardDiv);
         });
-        playerArea.appendChild(handDiv);
+        playerDiv.appendChild(handCircle);
     });
+    // Player score
+    const playerScoreDiv = document.getElementById("playerScore");
+    playerScoreDiv.innerText = "Totale: "+score(playerHands[currentHand]);
 }
 
-// ================================
-// --- INVIO RISULTATI A FIREBASE ---
-// ================================
+// --- Anti-cheat & Firebase ---
 function sendResultToFirebase(){
-    const userId = firebase.auth().currentUser?.uid || "guest_" + Date.now();
-    const hash = hashHand(playerHands, dealer, gameSeed);
-
+    const userId = firebase.auth().currentUser?.uid || "guest_"+Date.now();
+    const username = firebase.auth().currentUser?.displayName || userId;
+    const hash = btoa(JSON.stringify({handsLeft, bankroll, timestamp: Date.now()})); // semplice hash
     firebase.database().ref("blackjack/players/"+userId).set({
-        username: firebase.auth().currentUser?.displayName || userId,
+        username: username,
         balance: bankroll,
         handsLeft: handsLeft,
-        handHash: hash,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        hash: hash
     });
 }
 
-// ================================
-// --- HASH ANTI-CHEAT ---
-// ================================
-function hashHand(playerHands, dealer, seed){
-    let str = JSON.stringify(playerHands)+JSON.stringify(dealer)+seed;
-    let hash = 0;
-    for(let i=0;i<str.length;i++){
-        hash = ((hash<<5)-hash)+str.charCodeAt(i);
-        hash |= 0;
-    }
-    return hash;
-}
-
-// ================================
-// --- INIT ---
-// ================================
+// --- Inizializza UI ---
 updateUI();
 render();
