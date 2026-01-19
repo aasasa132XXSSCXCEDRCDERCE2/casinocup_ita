@@ -14,14 +14,13 @@
     flex-direction:column;
     align-items:center;
     justify-content:flex-start;
-    min-height:100vh;
-    overflow-x:hidden;
+    height:100vh;
   }
+
   #table {
-    position:relative;
     width:95%;
-    max-width:700px;
-    min-height:600px;
+    max-width:600px;
+    height:90%;
     margin-top:10px;
     background: linear-gradient(#0f5a34, #07331e);
     border-radius:30px;
@@ -31,6 +30,7 @@
     flex-direction:column;
     justify-content:space-between;
   }
+
   .cards {
     display:flex;
     justify-content:center;
@@ -38,29 +38,33 @@
     min-height:80px;
     margin-bottom:10px;
   }
+
   .card {
     width:60px;
     height:90px;
-    border-radius:5px;
+    border-radius:8px;
     background:#ffffff;
     color:#000;
     display:flex;
     justify-content:center;
     align-items:center;
     font-weight:bold;
-    font-size:18px;
+    font-size:16px;
     box-shadow:0 2px 5px rgba(0,0,0,0.5);
   }
+
   #dealerArea, #playerArea {
     text-align:center;
     margin:5px 0;
   }
+
   #ui {
     display:flex;
     justify-content:space-around;
     flex-wrap:wrap;
     margin-top:10px;
   }
+
   button, .chip {
     background:#d4af37;
     border:none;
@@ -70,6 +74,7 @@
     margin:3px;
     border-radius:5px;
   }
+
   .chip {
     background:#e74c3c;
     width:50px;
@@ -77,13 +82,22 @@
     display:flex;
     justify-content:center;
     align-items:center;
+    font-size:16px;
   }
+
   #chips {
     display:flex;
     justify-content:center;
     flex-wrap:wrap;
     margin-top:5px;
   }
+
+  #scores {
+    display:flex;
+    justify-content:space-around;
+    margin-bottom:10px;
+  }
+
   @media(max-width:480px){
     .card{width:40px;height:60px;font-size:14px;}
     button, .chip{padding:6px 10px;font-size:14px;}
@@ -94,18 +108,21 @@
 
 <div id="table">
 
+  <!-- Dealer -->
   <div id="dealerArea">
     <h3>Dealer</h3>
     <div id="dealerCards" class="cards"></div>
     <div id="dealerScore">Dealer: 0</div>
   </div>
 
+  <!-- Player -->
   <div id="playerArea">
     <h3>Tu</h3>
     <div id="playerCards" class="cards"></div>
     <div id="playerScore">Tu: 0</div>
   </div>
 
+  <!-- Chips -->
   <div id="chips">
     <div class="chip" data-value="50">50</div>
     <div class="chip" data-value="100">100</div>
@@ -113,9 +130,12 @@
     <div class="chip" data-value="1000">1000</div>
   </div>
 
+  <!-- UI -->
   <div id="ui">
     <div>
       <button id="undoBtn">Indietro</button>
+      <button id="rebetBtn">Rebet</button>
+      <button id="doubleBetBtn">Double Bet</button>
     </div>
     <div>
       <button id="dealBtn">Deal</button>
