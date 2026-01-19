@@ -1,323 +1,203 @@
-// ==================================================
-//            BLACKJACK TORNEO – CASINÒ PRO
-// ==================================================
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Blackjack Torneo</title>
 
-// ---------------- CONFIG ----------------
-const MIN_BET = 50;
-const MAX_HANDS = 30;
-const DECKS = 6;
-const CUT_PERCENT = 0.25;
-const DEALER_STAND = 17;
-
-// ---------------- STATE ----------------
-let bankroll = 10000;
-let handsLeft = MAX_HANDS;
-let bet = 0;
-let betHistory = [];
-
-let shoe = [];
-let cutIndex = 0;
-
-let hands = [];
-let activeHand = 0;
-
-let dealerHand = [];
-let dealerHole = null;
-
-let insuranceBet = 0;
-
-let PHASE = "BET"; 
-// BET → PLAYER → DEALER → END
-
-// ---------------- CARDS ----------------
-const SUITS = ["♠","♥","♦","♣"];
-const VALUES = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
-
-// ==================================================
-//                   SHOE
-// ==================================================
-function createShoe(){
-  shoe = [];
-  for(let d=0; d<DECKS; d++){
-    SUITS.forEach(s=>{
-      VALUES.forEach(v=>{
-        shoe.push({v,s});
-      });
-    });
-  }
-  shuffle(shoe);
-  cutIndex = Math.floor(shoe.length * CUT_PERCENT);
+<style>
+/* ================== RESET ================== */
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family: Arial, Helvetica, sans-serif;
+  user-select:none;
 }
 
-function shuffle(d){
-  for(let i=d.length-1;i>0;i--){
-    const j = Math.floor(Math.random()*(i+1));
-    [d[i],d[j]]=[d[j],d[i]];
-  }
+html,body{
+  width:100%;
+  height:100%;
+  background:#0b3d2e;
+  overflow:hidden;
 }
 
-function draw(){
-  if(shoe.length <= cutIndex){
-    createShoe(); // CUT CARD INVISIBILE
-  }
-  return shoe.pop();
+/* ================== TAVOLO ================== */
+#table{
+  width:100vw;
+  height:100vh;
+  background:
+    radial-gradient(circle at center, #1a6b4a 0%, #083524 70%);
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  padding:20px;
 }
 
-// ==================================================
-//                   SCORE
-// ==================================================
-function score(hand){
-  let total=0, aces=0;
-  hand.forEach(c=>{
-    if(c.v==="A"){ total+=11; aces++; }
-    else if(["K","Q","J"].includes(c.v)) total+=10;
-    else total+=parseInt(c.v);
-  });
-  while(total>21 && aces>0){ total-=10; aces--; }
-  return total;
+/* ================== INFO TOP ================== */
+#topBar{
+  display:flex;
+  justify-content:space-between;
+  color:#fff;
+  font-size:18px;
 }
 
-// ==================================================
-//                BET SYSTEM
-// ==================================================
-document.querySelectorAll(".chip").forEach(c=>{
-  c.onclick=()=>{
-    if(PHASE!=="BET") return;
-    const v = c.dataset.value==="all" ? bankroll : parseInt(c.dataset.value);
-    if(v<=0 || bankroll<v) return;
-    bankroll-=v;
-    bet+=v;
-    betHistory.push(v);
-    render();
-  };
-});
-
-undoBtn.onclick=()=>{
-  if(PHASE!=="BET" || !betHistory.length) return;
-  const v = betHistory.pop();
-  bet-=v;
-  bankroll+=v;
-  render();
-};
-
-// ==================================================
-//                   DEAL
-// ==================================================
-dealBtn.onclick=()=>{
-  if(PHASE!=="BET") return;
-  if(bet<MIN_BET) return alert("Minimo 50€");
-  if(handsLeft<=0) return;
-
-  startRound();
-};
-
-function startRound(){
-  PHASE="PLAYER";
-  insuranceBet=0;
-
-  hands=[[draw(),draw()]];
-  activeHand=0;
-
-  dealerHand=[draw()];
-  dealerHole=draw();
-
-  // INSURANCE
-  if(dealerHand[0].v==="A" && bankroll>=bet/2){
-    if(confirm("Insurance?")){
-      insuranceBet = bet/2;
-      bankroll -= insuranceBet;
-    }
-  }
-
-  render();
+/* ================== DEALER ================== */
+#dealerArea{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
 }
 
-// ==================================================
-//                    HIT
-// ==================================================
-hitBtn.onclick=()=>{
-  if(PHASE!=="PLAYER") return;
-  hands[activeHand].push(draw());
-  render();
-
-  if(score(hands[activeHand])>21){
-    nextHandOrDealer();
-  }
-};
-
-// ==================================================
-//                   STAND
-// ==================================================
-standBtn.onclick=()=>{
-  if(PHASE!=="PLAYER") return;
-  nextHandOrDealer();
-};
-
-// ==================================================
-//                   DOUBLE
-// ==================================================
-doubleBtn.onclick=()=>{
-  if(PHASE!=="PLAYER") return;
-  if(bankroll<bet) return;
-
-  bankroll-=bet;
-  bet*=2;
-  hands[activeHand].push(draw());
-  render();
-  nextHandOrDealer();
-};
-
-// ==================================================
-//                   SPLIT
-// ==================================================
-splitBtn.onclick=()=>{
-  if(PHASE!=="PLAYER") return;
-  const h = hands[activeHand];
-  if(h.length!==2 || h[0].v!==h[1].v) return;
-  if(bankroll<bet) return;
-
-  bankroll-=bet;
-
-  hands.splice(activeHand,1,
-    [h[0],draw()],
-    [h[1],draw()]
-  );
-
-  render();
-};
-
-// ==================================================
-//             HAND FLOW CONTROL
-// ==================================================
-function nextHandOrDealer(){
-  if(activeHand < hands.length-1){
-    activeHand++;
-    render();
-  } else {
-    PHASE="DEALER";
-    dealerTurn();
-  }
+#dealerCards{
+  display:flex;
+  gap:10px;
 }
 
-// ==================================================
-//                DEALER LOGIC
-// ==================================================
-async function dealerTurn(){
-  dealerHand.push(dealerHole);
-  dealerHole=null;
-  render();
-
-  await sleep(800);
-
-  while(score(dealerHand)<DEALER_STAND){
-    dealerHand.push(draw());
-    render();
-    await sleep(700);
-  }
-
-  endRound();
+#dealerScore{
+  color:#fff;
+  font-size:20px;
 }
 
-// ==================================================
-//                 END ROUND
-// ==================================================
-function endRound(){
-  PHASE="END";
-  const dealerScore = score(dealerHand);
-  const dealerBJ = dealerScore===21 && dealerHand.length===2;
-
-  hands.forEach(h=>{
-    const p = score(h);
-    const playerBJ = p===21 && h.length===2;
-
-    if(playerBJ && !dealerBJ){
-      bankroll += bet * 2.5; // 3:2
-    }
-    else if(p<=21){
-      if(dealerScore>21 || p>dealerScore) bankroll+=bet*2;
-      else if(p===dealerScore) bankroll+=bet;
-    }
-  });
-
-  if(insuranceBet && dealerBJ){
-    bankroll += insuranceBet * 3;
-  }
-
-  handsLeft--;
-
-  setTimeout(resetRound,2500);
+/* ================== PLAYER ================== */
+#playerArea{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
 }
 
-function resetRound(){
-  bet=0;
-  betHistory=[];
-  hands=[];
-  dealerHand=[];
-  dealerHole=null;
-
-  if(bankroll<=0){
-    alert("Bankroll finito. Torneo concluso.");
-    disableAll();
-    return;
-  }
-
-  PHASE="BET";
-  render();
+#playerCards{
+  display:flex;
+  gap:20px;
 }
 
-// ==================================================
-//                    RENDER
-// ==================================================
-function render(){
-  bankrollEl.innerText=bankroll;
-  handsLeftEl.innerText=handsLeft;
-  betEl.innerText=bet;
-
-  playerCards.innerHTML="";
-  hands.forEach((h,i)=>{
-    const div=document.createElement("div");
-    div.className="cards";
-    if(i===activeHand) div.style.outline="2px solid gold";
-    h.forEach(c=>div.appendChild(card(c)));
-    playerCards.appendChild(div);
-  });
-
-  playerScore.innerText =
-    hands[activeHand] ? "Tu: "+score(hands[activeHand]) : "";
-
-  dealerCards.innerHTML="";
-  dealerHand.forEach(c=>dealerCards.appendChild(card(c)));
-  if(PHASE==="PLAYER" && dealerHole){
-    dealerCards.appendChild(hiddenCard());
-    dealerScore.innerText="Dealer: ?";
-  } else {
-    dealerScore.innerText="Dealer: "+score(dealerHand);
-  }
+.cards{
+  display:flex;
+  gap:10px;
+  padding:5px;
 }
 
-// ==================================================
-//                  ELEMENTS
-// ==================================================
-function card(c){
-  const d=document.createElement("div");
-  d.className="card";
-  d.innerText=c.v+c.s;
-  d.style.color=["♥","♦"].includes(c.s)?"red":"black";
-  return d;
-}
-function hiddenCard(){
-  const d=document.createElement("div");
-  d.className="card";
-  d.innerText="🂠";
-  return d;
+#playerScore{
+  color:#fff;
+  font-size:22px;
 }
 
-function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
-function disableAll(){
-  document.querySelectorAll("button,.chip")
-    .forEach(e=>e.disabled=true);
+/* ================== CARTE ================== */
+.card{
+  width:70px;
+  height:100px;
+  background:#fff;
+  border-radius:8px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:26px;
+  font-weight:bold;
+  box-shadow:0 4px 10px rgba(0,0,0,.5);
 }
 
-// INIT
-createShoe();
-render();
+/* ================== CONTROLLI ================== */
+#controls{
+  display:flex;
+  justify-content:center;
+  gap:15px;
+  margin-top:10px;
+}
+
+button{
+  padding:10px 16px;
+  font-size:16px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+button:hover{
+  opacity:.85;
+}
+
+#dealBtn{ background:#2ecc71; }
+#hitBtn{ background:#3498db; }
+#standBtn{ background:#e67e22; }
+#doubleBtn{ background:#9b59b6; }
+#splitBtn{ background:#f1c40f; }
+#undoBtn{ background:#e74c3c; }
+
+/* ================== CHIPS ================== */
+#chips{
+  display:flex;
+  justify-content:center;
+  gap:12px;
+  margin-top:10px;
+}
+
+.chip{
+  width:60px;
+  height:60px;
+  border-radius:50%;
+  background:#c0392b;
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:bold;
+  cursor:pointer;
+  border:4px solid #eee;
+}
+
+.chip:hover{
+  transform:scale(1.05);
+}
+
+.chip[data-value="all"]{
+  background:#000;
+}
+</style>
+</head>
+
+<body>
+
+<div id="table">
+
+  <!-- TOP BAR -->
+  <div id="topBar">
+    <div>Bankroll: €<span id="bankroll">0</span></div>
+    <div>Mani rimaste: <span id="handsLeft">0</span></div>
+    <div>Puntata: €<span id="bet">0</span></div>
+  </div>
+
+  <!-- DEALER -->
+  <div id="dealerArea">
+    <div id="dealerCards"></div>
+    <div id="dealerScore"></div>
+  </div>
+
+  <!-- PLAYER -->
+  <div id="playerArea">
+    <div id="playerCards"></div>
+    <div id="playerScore"></div>
+
+    <div id="controls">
+      <button id="dealBtn">DEAL</button>
+      <button id="hitBtn">HIT</button>
+      <button id="standBtn">STAND</button>
+      <button id="doubleBtn">DOUBLE</button>
+      <button id="splitBtn">SPLIT</button>
+      <button id="undoBtn">UNDO</button>
+    </div>
+
+    <div id="chips">
+      <div class="chip" data-value="50">50</div>
+      <div class="chip" data-value="100">100</div>
+      <div class="chip" data-value="250">250</div>
+      <div class="chip" data-value="500">500</div>
+      <div class="chip" data-value="all">ALL</div>
+    </div>
+  </div>
+
+</div>
+
+<script src="game.js"></script>
+</body>
+</html>
