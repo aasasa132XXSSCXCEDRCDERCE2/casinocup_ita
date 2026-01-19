@@ -4,111 +4,170 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Blackjack Torneo</title>
+
 <style>
-  body {
-    margin:0;
-    font-family: Arial, Helvetica, sans-serif;
-    background: #0b3f1f;
-    color:white;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:flex-start;
-    height:100vh;
-    overflow-x:hidden;
-  }
-  #table {
-    position:relative;
-    width:95%;
-    max-width:700px;
-    height:95%;
-    margin-top:10px;
-    background: linear-gradient(#0f5a34, #07331e);
-    border-radius:30px;
-    padding:15px;
-    box-sizing:border-box;
-    display:flex;
-    flex-direction:column;
-    justify-content:space-between;
-  }
-  .cards {
-    display:flex;
-    justify-content:center;
-    gap:5px;
-    flex-wrap:wrap;
-    min-height:80px;
-    margin-bottom:10px;
-  }
-  .card {
-    width:60px;
-    height:90px;
-    border-radius:8px;
-    background:#fff;
-    color:#000;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    font-weight:bold;
-    font-size:18px;
-    box-shadow:0 2px 5px rgba(0,0,0,0.5);
-    transition: opacity 0.3s;
-  }
-  #dealerArea, #playerArea {
-    text-align:center;
-    margin:5px 0;
-  }
-  #ui {
-    display:flex;
-    justify-content:space-around;
-    flex-wrap:wrap;
-    margin-top:10px;
-  }
-  button, .chip {
-    background:#d4af37;
-    border:none;
-    padding:8px 14px;
-    font-weight:bold;
-    cursor:pointer;
-    margin:3px;
-    border-radius:5px;
-  }
-  .chip {
-    background:#e74c3c;
-    width:50px;
-    height:50px;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    font-size:16px;
-  }
-  #chips {
-    display:flex;
-    justify-content:center;
-    flex-wrap:wrap;
-    margin-top:5px;
-  }
-  @media(max-width:480px){
-    .card{width:40px;height:60px;font-size:14px;}
-    button, .chip{padding:6px 10px;font-size:14px;}
-  }
+/* ================== RESET ================== */
+* { box-sizing: border-box; user-select: none; }
+body {
+  margin: 0;
+  font-family: "Trebuchet MS", Arial, sans-serif;
+  background: radial-gradient(circle at top, #111 0%, #000 70%);
+  color: #f5f5f5;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+/* ================== TABLE ================== */
+#table {
+  width: 95%;
+  max-width: 760px;
+  height: 95%;
+  background:
+    radial-gradient(circle at center, #0f7a46 0%, #0b4f2d 55%, #06301c 100%);
+  border-radius: 50% 50% 45% 45% / 60% 60% 40% 40%;
+  border: 10px solid #3b2a14;
+  outline: 3px solid #d4af37;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* ================== DEALER ================== */
+#dealerArea {
+  text-align: center;
+  padding-top: 10px;
+}
+#dealerArea h3 {
+  font-weight: normal;
+  letter-spacing: 2px;
+  color: #e6c97a;
+  margin-bottom: 6px;
+}
+
+/* ================== PLAYER ================== */
+#playerArea {
+  text-align: center;
+  margin-bottom: 10px;
+}
+#playerArea h3 {
+  font-weight: normal;
+  letter-spacing: 2px;
+  color: #e6c97a;
+  margin-bottom: 6px;
+}
+
+/* ================== CARDS ================== */
+.cards {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  min-height: 95px;
+  margin-bottom: 5px;
+}
+
+.card {
+  width: 62px;
+  height: 92px;
+  background: linear-gradient(#ffffff, #e6e6e6);
+  border-radius: 6px;
+  border: 1px solid #aaa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 20px;
+  box-shadow:
+    0 2px 4px rgba(0,0,0,.6),
+    inset 0 0 0 1px rgba(255,255,255,.6);
+}
+
+/* ================== SCORES ================== */
+#dealerScore, #playerScore {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+/* ================== CHIPS ================== */
+#chips {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 5px 0;
+}
+
+.chip {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  font-weight: bold;
+  font-size: 14px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  border: 4px dashed rgba(255,255,255,.8);
+  box-shadow:
+    inset 0 0 0 3px rgba(0,0,0,.4),
+    0 3px 6px rgba(0,0,0,.6);
+}
+
+.chip[data-value="50"]   { background:#c0392b; }
+.chip[data-value="100"]  { background:#2980b9; }
+.chip[data-value="500"]  { background:#27ae60; }
+.chip[data-value="1000"] { background:#8e44ad; }
+.chip[data-value="all"]  { background:#d4af37; color:#000; }
+
+/* ================== UI ================== */
+#ui {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+button {
+  background: linear-gradient(#f0d98c, #c8a846);
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,.6);
+}
+button:active { transform: translateY(1px); }
+
+.stats {
+  font-size: 14px;
+  text-align: right;
+}
+
+/* ================== MOBILE ================== */
+@media(max-width:480px){
+  .card { width:48px;height:72px;font-size:16px; }
+  .chip { width:46px;height:46px;font-size:12px; }
+}
 </style>
 </head>
+
 <body>
 
 <div id="table">
 
-  <!-- DEALER AREA -->
+  <!-- DEALER -->
   <div id="dealerArea">
-    <h3>Dealer</h3>
+    <h3>DEALER</h3>
     <div id="dealerCards" class="cards"></div>
-    <div id="dealerScore">Dealer: 0</div>
+    <div id="dealerScore"></div>
   </div>
 
-  <!-- PLAYER AREA -->
+  <!-- PLAYER -->
   <div id="playerArea">
-    <h3>Tu</h3>
-    <div id="playerCards" class="cards"></div>
-    <div id="playerScore">Tu: 0</div>
+    <h3>PLAYER</h3>
+    <div id="playerCards"></div>
+    <div id="playerScore"></div>
   </div>
 
   <!-- CHIPS -->
@@ -117,37 +176,30 @@
     <div class="chip" data-value="100">100</div>
     <div class="chip" data-value="500">500</div>
     <div class="chip" data-value="1000">1000</div>
+    <div class="chip" data-value="all">ALL</div>
   </div>
 
-  <!-- UI BUTTONS -->
+  <!-- UI -->
   <div id="ui">
-    <div>
-      <button id="undoBtn">Indietro</button>
+    <button id="undoBtn">UNDO</button>
+
+    <div style="text-align:center">
+      <button id="dealBtn">DEAL</button>
+      <button id="hitBtn">HIT</button>
+      <button id="standBtn">STAND</button>
+      <button id="doubleBtn">DOUBLE</button>
+      <button id="splitBtn">SPLIT</button>
     </div>
-    <div>
-      <button id="dealBtn">Deal</button>
-      <button id="hitBtn">Hit</button>
-      <button id="standBtn">Stand</button>
-      <button id="doubleBtn">Double</button>
-      <button id="splitBtn">Split</button>
-    </div>
-    <div>
-      <div>Bankroll: €<span id="bankroll">10000</span></div>
-      <div>Mani rimaste: <span id="handsLeft">30</span></div>
-      <div>Puntata: €<span id="bet">0</span></div>
+
+    <div class="stats">
+      Bankroll €<span id="bankroll">0</span><br>
+      Mani <span id="handsLeft">0</span><br>
+      Puntata €<span id="bet">0</span>
     </div>
   </div>
 
 </div>
 
-<!-- Firebase compat (opzionale per classifica) -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
-<!-- File JS -->
-<script src="firebase.js"></script>
 <script src="game.js"></script>
-
 </body>
 </html>
