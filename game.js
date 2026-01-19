@@ -3,6 +3,7 @@ const MIN_BET = 50;
 const MAX_HANDS = 30;
 const DEALER_STAND = 17;
 const RESET_DELAY = 3000;
+const NUM_DECKS = 1; // numero di mazzi per il torneo
 
 // ================== GAME STATE ==================
 let bankroll = 10000;
@@ -10,7 +11,7 @@ let handsLeft = MAX_HANDS;
 let bet = 0;
 let betHistory = [];
 
-let deck = [];
+let deck = []; // mazzo unico
 let playerHands = [[]]; // supporta split
 let currentHandIndex = 0;
 let dealerHand = [];
@@ -22,27 +23,40 @@ let PHASE = "BET"; // BET → PLAYER → DEALER → END
 const SUITS = ["♠","♥","♦","♣"];
 const VALUES = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
 
+// ================== CONTEGGIO CARTE (Hi-Lo) ==================
+let runningCount = 0; // interno, non mostrato
+function updateCount(card){
+  if(["2","3","4","5","6"].includes(card.v)) runningCount += 1;
+  else if(["10","J","Q","K","A"].includes(card.v)) runningCount -= 1;
+  // 7,8,9 = 0
+}
+
 // ================== DECK ==================
-function createDeck(){
-  const d = [];
-  SUITS.forEach(s=>VALUES.forEach(v=>d.push({v,s})));
-  return d;
+function initDeck(numDecks=NUM_DECKS){
+  deck = [];
+  for(let n=0; n<numDecks; n++){
+    SUITS.forEach(s => VALUES.forEach(v => deck.push({v,s})));
+  }
+  shuffle(deck);
+  runningCount = 0;
 }
 
 function shuffle(d){
   for(let i=d.length-1;i>0;i--){
     const j = Math.floor(Math.random()*(i+1));
-    [d[i],d[j]] = [d[j],d[i]];
+    [d[i],d[j]]=[d[j],d[i]];
   }
 }
 
-function draw(){
-  return deck.pop();
+function drawCard(){
+  const c = deck.pop();
+  updateCount(c);
+  return c;
 }
 
 // ================== SCORE ==================
 function score(hand){
-  let total = 0, aces=0;
+  let total=0, aces=0;
   hand.forEach(c=>{
     if(c.v==="A"){ total+=11; aces++; }
     else if(["K","Q","J"].includes(c.v)) total+=10;
@@ -57,7 +71,7 @@ document.querySelectorAll(".chip").forEach(chip=>{
   chip.onclick = ()=>{
     if(PHASE!=="BET") return;
     const v = parseInt(chip.dataset.value);
-    if(bankroll<v || bankroll===0) return; // blocca se non abbastanza soldi
+    if(bankroll<v) return;
     bankroll -= v;
     bet += v;
     betHistory.push(v);
@@ -78,25 +92,22 @@ document.getElementById("dealBtn").onclick = ()=>{
   if(PHASE!=="BET") return;
   if(bet<MIN_BET) return alert("Puntata minima 50€");
   if(handsLeft<=0) return alert("Mani finite");
-  if(bankroll<=0) return alert("Saldo esaurito! Torneo finito");
+  if(deck.length<15) initDeck(NUM_DECKS); // rimescola se mazzo basso
 
   startRound();
 };
 
 function startRound(){
   PHASE = "PLAYER";
-  deck = createDeck();
-  shuffle(deck);
 
-  playerHands = [[draw(),draw()]];
+  playerHands = [[drawCard(), drawCard()]];
   currentHandIndex = 0;
-
-  dealerHand = [draw()];
-  dealerHole = draw();
+  dealerHand = [drawCard()];
+  dealerHole = drawCard();
 
   render();
 
-  // BLACKJACK IMMEDIATO
+  // BLACKJACK INIZIALE
   const p = score(playerHands[0]);
   const d = score([dealerHand[0], dealerHole]);
   if(p===21){
@@ -104,7 +115,7 @@ function startRound(){
     dealerHand.push(dealerHole); dealerHole=null;
     if(d===21) bankroll+=bet; else bankroll+=bet*2.5;
     handsLeft--;
-    setTimeout(resetRound,RESET_DELAY);
+    setTimeout(resetRound, RESET_DELAY);
     render();
   }
 }
@@ -113,7 +124,7 @@ function startRound(){
 document.getElementById("hitBtn").onclick = ()=>{
   if(PHASE!=="PLAYER") return;
   let hand = playerHands[currentHandIndex];
-  hand.push(draw());
+  hand.push(drawCard());
   render(true);
 
   if(score(hand)>21){
@@ -137,14 +148,10 @@ document.getElementById("doubleBtn").onclick = ()=>{
   bankroll -= bet;
   bet *= 2;
 
-  hand.push(draw());
+  hand.push(drawCard());
   render(true);
 
-  if(score(hand)>21){
-    nextHandOrDealer();
-  } else {
-    nextHandOrDealer();
-  }
+  nextHandOrDealer();
 };
 
 // ================== SPLIT ==================
@@ -156,13 +163,13 @@ document.getElementById("splitBtn").onclick = ()=>{
 
   bankroll -= bet;
   let card1 = hand[0], card2 = hand[1];
-  playerHands[currentHandIndex] = [card1, draw()];
-  playerHands.push([card2, draw()]);
+  playerHands[currentHandIndex] = [card1, drawCard()];
+  playerHands.push([card2, drawCard()]);
 
   render();
 };
 
-// ================== LOGICA MANI/DEALER ==================
+// ================== LOGICA MANI / DEALER ==================
 function nextHandOrDealer(){
   if(currentHandIndex<playerHands.length-1){
     currentHandIndex++;
@@ -178,7 +185,7 @@ async function revealDealer(){
   render();
   await sleep(700);
   while(score(dealerHand)<DEALER_STAND){
-    dealerHand.push(draw());
+    dealerHand.push(drawCard());
     render(true);
     await sleep(700);
   }
@@ -196,9 +203,8 @@ function endRound(){
       else if(p===d) bankroll+=bet;
     }
   });
-
   handsLeft--;
-  setTimeout(resetRound,RESET_DELAY);
+  setTimeout(resetRound, RESET_DELAY);
 }
 
 // ================== RESET ROUND ==================
@@ -207,6 +213,7 @@ function resetRound(){
   playerHands=[[]]; currentHandIndex=0;
   dealerHand=[]; dealerHole=null;
 
+  // se il bankroll è finito dopo la mano
   if(bankroll<=0){
     handsLeft = 0;
     alert("Saldo esaurito! Torneo finito");
@@ -291,4 +298,5 @@ function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
 function disableAll(){ document.querySelectorAll("button,.chip").forEach(e=>e.disabled=true); }
 
 // ================== INIT ==================
+initDeck(NUM_DECKS);
 render();
