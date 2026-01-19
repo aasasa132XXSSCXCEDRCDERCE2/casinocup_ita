@@ -14,19 +14,17 @@
     flex-direction:column;
     align-items:center;
     justify-content:flex-start;
-    height:100vh;
+    min-height:100vh;
     overflow-x:hidden;
   }
   #table {
     position:relative;
     width:95%;
     max-width:600px;
-    height:90%;
     margin-top:10px;
     background: linear-gradient(#0f5a34, #07331e);
     border-radius:30px;
     padding:10px;
-    box-sizing:border-box;
     display:flex;
     flex-direction:column;
     justify-content:space-between;
@@ -84,6 +82,11 @@
     flex-wrap:wrap;
     margin-top:5px;
   }
+  #scores {
+    display:flex;
+    justify-content:space-around;
+    margin-bottom:10px;
+  }
   @media(max-width:480px){
     .card{width:40px;height:60px;font-size:14px;}
     button, .chip{padding:6px 10px;font-size:14px;}
@@ -94,18 +97,21 @@
 
 <div id="table">
 
+  <!-- Dealer -->
   <div id="dealerArea">
     <h3>Dealer</h3>
     <div id="dealerCards" class="cards"></div>
     <div id="dealerScore">Dealer: 0</div>
   </div>
 
+  <!-- Player -->
   <div id="playerArea">
     <h3>Tu</h3>
     <div id="playerCards" class="cards"></div>
     <div id="playerScore">Tu: 0</div>
   </div>
 
+  <!-- Chips -->
   <div id="chips">
     <div class="chip" data-value="50">50</div>
     <div class="chip" data-value="100">100</div>
@@ -113,24 +119,33 @@
     <div class="chip" data-value="1000">1000</div>
   </div>
 
+  <!-- UI Pulsanti -->
   <div id="ui">
-    <button id="undoBtn">Indietro</button>
-    <button id="dealBtn">Deal</button>
-    <button id="hitBtn">Hit</button>
-    <button id="standBtn">Stand</button>
-    <button id="doubleBtn">Double</button>
-    <div>Bankroll: €<span id="bankroll">10000</span></div>
-    <div>Mani rimaste: <span id="handsLeft">30</span></div>
-    <div>Puntata: €<span id="bet">0</span></div>
+    <div>
+      <button id="undoBtn">Indietro</button>
+    </div>
+    <div>
+      <button id="dealBtn">Deal</button>
+      <button id="hitBtn">Hit</button>
+      <button id="standBtn">Stand</button>
+      <button id="doubleBtn">Double</button>
+      <button id="splitBtn">Split</button>
+    </div>
+    <div>
+      <div>Bankroll: €<span id="bankroll">10000</span></div>
+      <div>Mani rimaste: <span id="handsLeft">30</span></div>
+      <div>Puntata: €<span id="bet">0</span></div>
+    </div>
   </div>
 
 </div>
 
-<!-- Firebase compat -->
+<!-- Firebase SDK compat -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
+<!-- File JS -->
 <script src="firebase.js"></script>
 <script src="game.js"></script>
 
