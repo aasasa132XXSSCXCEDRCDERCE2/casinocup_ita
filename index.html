@@ -4,163 +4,89 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Blackjack Torneo</title>
+
 <style>
-  body {
-    margin:0;
-    font-family: Arial, Helvetica, sans-serif;
-    background: #0b3f1f;
-    color:white;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:flex-start;
-    height:100vh;
-  }
-
-  #table {
-    width:95%;
-    max-width:600px;
-    height:90%;
-    margin-top:10px;
-    background: linear-gradient(#0f5a34, #07331e);
-    border-radius:30px;
-    padding:10px;
-    box-sizing:border-box;
-    display:flex;
-    flex-direction:column;
-    justify-content:space-between;
-  }
-
-  .cards {
-    display:flex;
-    justify-content:center;
-    gap:5px;
-    min-height:80px;
-    margin-bottom:10px;
-  }
-
-  .card {
-    width:60px;
-    height:90px;
-    border-radius:8px;
-    background:#ffffff;
-    color:#000;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    font-weight:bold;
-    font-size:16px;
-    box-shadow:0 2px 5px rgba(0,0,0,0.5);
-  }
-
-  #dealerArea, #playerArea {
-    text-align:center;
-    margin:5px 0;
-  }
-
-  #ui {
-    display:flex;
-    justify-content:space-around;
-    flex-wrap:wrap;
-    margin-top:10px;
-  }
-
-  button, .chip {
-    background:#d4af37;
-    border:none;
-    padding:8px 14px;
-    font-weight:bold;
-    cursor:pointer;
-    margin:3px;
-    border-radius:5px;
-  }
-
-  .chip {
-    background:#e74c3c;
-    width:50px;
-    height:50px;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    font-size:16px;
-  }
-
-  #chips {
-    display:flex;
-    justify-content:center;
-    flex-wrap:wrap;
-    margin-top:5px;
-  }
-
-  #scores {
-    display:flex;
-    justify-content:space-around;
-    margin-bottom:10px;
-  }
-
-  @media(max-width:480px){
-    .card{width:40px;height:60px;font-size:14px;}
-    button, .chip{padding:6px 10px;font-size:14px;}
-  }
+body{
+  margin:0;
+  background:#0b3f1f;
+  color:white;
+  font-family:Arial, Helvetica, sans-serif;
+  display:flex;
+  justify-content:center;
+}
+#table{
+  width:100%;
+  max-width:420px;
+  padding:10px;
+}
+.cards{
+  display:flex;
+  justify-content:center;
+  min-height:90px;
+}
+.card{
+  width:60px;
+  height:90px;
+  background:white;
+  color:black;
+  border-radius:6px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  font-weight:bold;
+  margin-left:-25px;
+}
+#chips, #controls{
+  display:flex;
+  justify-content:center;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+.chip, button{
+  margin:5px;
+  padding:10px;
+  font-weight:bold;
+}
 </style>
 </head>
-<body>
 
+<body>
 <div id="table">
 
-  <!-- Dealer -->
-  <div id="dealerArea">
-    <h3>Dealer</h3>
-    <div id="dealerCards" class="cards"></div>
-    <div id="dealerScore">Dealer: 0</div>
-  </div>
+<h3>Dealer</h3>
+<div id="dealerCards" class="cards"></div>
+<div id="dealerScore">?</div>
 
-  <!-- Player -->
-  <div id="playerArea">
-    <h3>Tu</h3>
-    <div id="playerCards" class="cards"></div>
-    <div id="playerScore">Tu: 0</div>
-  </div>
+<h3>Tu</h3>
+<div id="playerCards" class="cards"></div>
+<div id="playerScore">0</div>
 
-  <!-- Chips -->
-  <div id="chips">
-    <div class="chip" data-value="50">50</div>
-    <div class="chip" data-value="100">100</div>
-    <div class="chip" data-value="500">500</div>
-    <div class="chip" data-value="1000">1000</div>
-  </div>
+<div id="chips">
+  <div class="chip" data-value="50">50</div>
+  <div class="chip" data-value="100">100</div>
+  <div class="chip" data-value="500">500</div>
+</div>
 
-  <!-- UI -->
-  <div id="ui">
-    <div>
-      <button id="undoBtn">Indietro</button>
-      <button id="rebetBtn">Rebet</button>
-      <button id="doubleBetBtn">Double Bet</button>
-    </div>
-    <div>
-      <button id="dealBtn">Deal</button>
-      <button id="hitBtn">Hit</button>
-      <button id="standBtn">Stand</button>
-      <button id="doubleBtn">Double</button>
-      <button id="splitBtn">Split</button>
-    </div>
-    <div>
-      <div>Bankroll: €<span id="bankroll">10000</span></div>
-      <div>Mani rimaste: <span id="handsLeft">30</span></div>
-      <div>Puntata: €<span id="bet">0</span></div>
-    </div>
-  </div>
+<div id="controls">
+  <button id="dealBtn">Deal</button>
+  <button id="hitBtn">Hit</button>
+  <button id="standBtn">Stand</button>
+</div>
+
+<div>
+  Bankroll: €<span id="bankroll">10000</span> |
+  Mani: <span id="handsLeft">30</span> |
+  Puntata: €<span id="bet">0</span>
+</div>
 
 </div>
 
-<!-- Firebase compat -->
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
-<!-- File JS -->
 <script src="firebase.js"></script>
 <script src="game.js"></script>
-
 </body>
 </html>
