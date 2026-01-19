@@ -1,45 +1,49 @@
 // ================== CONFIG ==================
 const MIN_BET = 50;
-const MAX_BET = 1000;
 const MAX_HANDS = 30;
+const DEALER_STAND = 17;
 const RESET_DELAY = 3000;
 
-// ================== STATO GIOCO ==================
+// ================== GAME STATE ==================
 let bankroll = 10000;
 let handsLeft = MAX_HANDS;
 let bet = 0;
 let betHistory = [];
+
 let deck = [];
+let playerHands = [[]]; // supporta split
+let currentHandIndex = 0;
 let dealerHand = [];
 let dealerHole = null;
-let playerHands = [[]]; // per split
-let currentHand = 0;
-let PHASE = "BET"; // BET, PLAYER, DEALER, ROUND_END
-let roundSeed = "";
-let roundHash = "";
 
-// ================== CARTE ==================
-const suits = ["♠","♥","♦","♣"];
-const values = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+let PHASE = "BET"; // BET → PLAYER → DEALER → END
 
-// ================== FUNZIONI DECK ==================
+// ================== CARD DATA ==================
+const SUITS = ["♠","♥","♦","♣"];
+const VALUES = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+
+// ================== DECK ==================
 function createDeck(){
-  let d=[];
-  suits.forEach(s=>values.forEach(v=>d.push({v,s})));
+  const d = [];
+  SUITS.forEach(s=>VALUES.forEach(v=>d.push({v,s})));
   return d;
 }
+
 function shuffle(d){
   for(let i=d.length-1;i>0;i--){
-    let j=Math.floor(Math.random()*(i+1));
-    [d[i],d[j]]=[d[j],d[i]];
+    const j = Math.floor(Math.random()*(i+1));
+    [d[i],d[j]] = [d[j],d[i]];
   }
 }
-function draw(){ return deck.pop(); }
 
-// ================== CALCOLO PUNTEGGIO ==================
-function score(cards){
-  let total=0, aces=0;
-  cards.forEach(c=>{
+function draw(){
+  return deck.pop();
+}
+
+// ================== SCORE ==================
+function score(hand){
+  let total = 0, aces=0;
+  hand.forEach(c=>{
     if(c.v==="A"){ total+=11; aces++; }
     else if(["K","Q","J"].includes(c.v)) total+=10;
     else total+=parseInt(c.v);
@@ -48,285 +52,218 @@ function score(cards){
   return total;
 }
 
-// ================== UI ==================
-function updateUI(){
-  document.getElementById("bankroll").innerText=bankroll;
-  document.getElementById("handsLeft").innerText=handsLeft;
-  document.getElementById("bet").innerText=bet;
-  render();
-}
-
-// ================== CHIPS ==================
-document.querySelectorAll(".chip").forEach(c=>{
-  c.onclick=()=>{
+// ================== BET SYSTEM ==================
+document.querySelectorAll(".chip").forEach(chip=>{
+  chip.onclick = ()=>{
     if(PHASE!=="BET") return;
-    let val=parseInt(c.dataset.value);
-    if(bankroll>=val && bet+val<=MAX_BET){
-      bankroll-=val;
-      bet+=val;
-      betHistory.push(val);
-      updateUI();
-    }
-  }
+    const v = parseInt(chip.dataset.value);
+    if(bankroll<v) return;
+    bankroll -= v;
+    bet += v;
+    betHistory.push(v);
+    render();
+  };
 });
 
-// Undo puntata
-document.getElementById("undoBtn").onclick=()=>{
-  if(PHASE!=="BET") return;
-  if(betHistory.length>0){
-    let last=betHistory.pop();
-    bet-=last;
-    bankroll+=last;
-    updateUI();
-  }
-}
+document.getElementById("undoBtn").onclick = ()=>{
+  if(PHASE!=="BET" || !betHistory.length) return;
+  const v = betHistory.pop();
+  bet -= v;
+  bankroll += v;
+  render();
+};
 
 // ================== DEAL ==================
-document.getElementById("dealBtn").onclick=()=>{
+document.getElementById("dealBtn").onclick = ()=>{
   if(PHASE!=="BET") return;
-  if(bet<MIN_BET) return alert(`Puntata minima ${MIN_BET}€`);
-  if(handsLeft<=0) return alert("Hai finito le mani!");
+  if(bet<MIN_BET) return alert("Puntata minima 50€");
+  if(handsLeft<=0) return alert("Mani finite");
 
   startRound();
 };
 
 function startRound(){
-  PHASE="PLAYER";
-
-  deck=createDeck();
+  PHASE = "PLAYER";
+  deck = createDeck();
   shuffle(deck);
 
-  playerHands=[[draw(), draw()]];
-  currentHand=0;
+  // inizializza mani
+  playerHands = [[draw(),draw()]];
+  currentHandIndex = 0;
 
-  dealerHand=[draw()];
-  dealerHole=draw();
-
-  // Seed e hash anti-cheat
-  roundSeed=Math.floor(Math.random()*1e9).toString();
-  roundHash=hashString(JSON.stringify({seed:roundSeed,bet:bet,deck:deck.map(c=>c.v+c.s)}));
-
-  // Nascondi chips
-  document.getElementById("chips").style.display="none";
+  dealerHand = [draw()];
+  dealerHole = draw();
 
   render();
 
   // BLACKJACK IMMEDIATO
-  const pScore=score(playerHands[currentHand]);
-  const dScore=score([dealerHand[0], dealerHole]);
-  if(pScore===21){
+  const p = score(playerHands[0]);
+  const d = score([dealerHand[0], dealerHole]);
+  if(p===21){
     PHASE="DEALER";
-    dealerHand.push(dealerHole);
-    dealerHole=null;
-
-    if(dScore===21) bankroll+=bet; // push
-    else bankroll+=Math.floor(bet*2.5); // 3:2 payout
-
+    dealerHand.push(dealerHole); dealerHole=null;
+    if(d===21) bankroll+=bet; else bankroll+=bet*2.5;
     handsLeft--;
-    setTimeout(resetRound, RESET_DELAY);
+    setTimeout(resetRound,RESET_DELAY);
     render();
   }
 }
 
 // ================== HIT ==================
-document.getElementById("hitBtn").onclick=()=>{
+document.getElementById("hitBtn").onclick = ()=>{
   if(PHASE!=="PLAYER") return;
-  const hand=playerHands[currentHand];
+
+  let hand = playerHands[currentHandIndex];
   hand.push(draw());
   render();
 
   if(score(hand)>21){
-    // Bust
-    setTimeout(nextHand, 500);
+    nextHandOrDealer();
   }
-}
+};
 
 // ================== STAND ==================
-document.getElementById("standBtn").onclick=()=>{
+document.getElementById("standBtn").onclick = ()=>{
   if(PHASE!=="PLAYER") return;
-  nextHand();
-}
+  nextHandOrDealer();
+};
 
 // ================== DOUBLE ==================
-document.getElementById("doubleBtn").onclick=()=>{
+document.getElementById("doubleBtn").onclick = ()=>{
   if(PHASE!=="PLAYER") return;
-  const hand=playerHands[currentHand];
-  if(hand.length!==2) return alert("Double solo sulle prime 2 carte");
+  let hand = playerHands[currentHandIndex];
+  if(hand.length!==2) return;
   if(bankroll<bet) return alert("Saldo insufficiente");
 
-  bankroll-=bet;
-  bet*=2;
+  bankroll -= bet;
+  bet *= 2;
 
   hand.push(draw());
   render();
 
   if(score(hand)>21){
-    setTimeout(nextHand,500);
+    nextHandOrDealer();
   } else {
-    PHASE="DEALER";
-    revealDealer();
+    nextHandOrDealer();
   }
-}
+};
 
 // ================== SPLIT ==================
-document.getElementById("splitBtn").onclick=()=>{
+document.getElementById("splitBtn").onclick = ()=>{
   if(PHASE!=="PLAYER") return;
-  const hand=playerHands[currentHand];
-  if(hand.length!==2 || hand[0].v!==hand[1].v) return alert("Split solo se prime due carte uguali");
+  let hand = playerHands[currentHandIndex];
+  if(hand.length!==2 || hand[0].v!==hand[1].v) return alert("Split non possibile");
+
   if(bankroll<bet) return alert("Saldo insufficiente");
 
-  bankroll-=bet;
-  const first=[hand[0], draw()];
-  const second=[hand[1], draw()];
-
-  playerHands[currentHand]=first;
-  playerHands.splice(currentHand+1,0,second);
+  bankroll -= bet;
+  // dividi le due carte in due mani
+  let card1 = hand[0], card2 = hand[1];
+  playerHands[currentHandIndex] = [card1, draw()];
+  playerHands.push([card2, draw()]);
 
   render();
-}
+};
 
-// ================== MANO SUCCESSIVA ==================
-function nextHand(){
-  currentHand++;
-  if(currentHand>=playerHands.length){
+// ================== LOGICA MANI/DEALER ==================
+function nextHandOrDealer(){
+  if(currentHandIndex<playerHands.length-1){
+    currentHandIndex++;
+    render();
+  } else {
     PHASE="DEALER";
     revealDealer();
-  } else {
-    render();
   }
 }
 
-// ================== DEALER LOGIC ==================
-function revealDealer(){
-  if(PHASE!=="DEALER") return;
-  dealerHand.push(dealerHole);
-  dealerHole=null;
+async function revealDealer(){
+  dealerHand.push(dealerHole); dealerHole=null;
   render();
-
-  let dealerInterval=setInterval(()=>{
-    const dScore=score(dealerHand);
-    if(dScore<17){
-      dealerHand.push(draw());
-      render();
-    } else {
-      clearInterval(dealerInterval);
-      endRound();
-    }
-  }, 800);
+  await sleep(700);
+  while(score(dealerHand)<DEALER_STAND){
+    dealerHand.push(draw());
+    render();
+    await sleep(700);
+  }
+  endRound();
 }
 
-// ================== FINE ROUND ==================
+// ================== END ROUND ==================
 function endRound(){
-  const dealerScore=score(dealerHand);
+  PHASE="END";
   playerHands.forEach(hand=>{
-    const pScore=score(hand);
-    if(pScore>21) return; // bust perde
-    if(dealerScore>21 || pScore>dealerScore) bankroll+=bet*2;
-    else if(pScore===dealerScore) bankroll+=bet;
-    // altrimenti perde
+    const p = score(hand);
+    const d = score(dealerHand);
+    if(p<=21){
+      if(d>21 || p>d) bankroll+=bet*2;
+      else if(p===d) bankroll+=bet;
+    }
   });
 
   handsLeft--;
-  sendResultToFirebase();
-
-  PHASE="ROUND_END";
-  setTimeout(resetRound, RESET_DELAY);
+  setTimeout(resetRound,RESET_DELAY);
 }
 
+// ================== RESET ROUND ==================
 function resetRound(){
-  PHASE="BET";
-  bet=0;
-  betHistory=[];
-  playerHands=[[]];
-  dealerHand=[];
-  dealerHole=null;
-
-  document.getElementById("chips").style.display="flex";
-  updateUI();
+  bet=0; betHistory=[];
+  playerHands=[[]]; currentHandIndex=0;
+  dealerHand=[]; dealerHole=null;
 
   if(handsLeft<=0){
-    alert("Hai finito le mani! Non puoi più giocare.");
-    document.querySelectorAll("button, .chip").forEach(el=>el.disabled=true);
+    alert("Torneo finito");
+    disableAll();
+    return;
   }
+  PHASE="BET";
+  render();
 }
 
 // ================== RENDER ==================
 function render(){
-  // Dealer
-  const dealerDiv=document.getElementById("dealerCards");
-  dealerDiv.innerHTML="";
-  dealerHand.forEach((c,i)=>{
-    const card=document.createElement("div");
-    card.className="card";
-    card.innerText=c.v+c.s;
-    card.style.background=["♥","♦"].includes(c.s)?"#ffdddd":"#ffffff";
-    card.style.color=["♥","♦"].includes(c.s)?"red":"black";
-    card.style.width="80px";
-    card.style.height="120px";
-    card.style.display="flex";
-    card.style.justifyContent="center";
-    card.style.alignItems="center";
-    card.style.border="1px solid #000";
-    card.style.borderRadius="8px";
-    card.style.marginLeft=i===0?"0":"-30px";
-    dealerDiv.appendChild(card);
-  });
+  document.getElementById("bankroll").innerText=bankroll;
+  document.getElementById("handsLeft").innerText=handsLeft;
+  document.getElementById("bet").innerText=bet;
 
-  // Player
-  const playerDiv=document.getElementById("playerHandsArea");
-  playerDiv.innerHTML="";
-  playerHands.forEach(hand=>{
-    const handCircle=document.createElement("div");
-    handCircle.style.display="inline-flex";
-    hand.forEach((c,i)=>{
-      const card=document.createElement("div");
-      card.className="card";
-      card.innerText=c.v+c.s;
-      card.style.background=["♥","♦"].includes(c.s)?"#ffdddd":"#ffffff";
-      card.style.color=["♥","♦"].includes(c.s)?"red":"black";
-      card.style.width="80px";
-      card.style.height="120px";
-      card.style.display="flex";
-      card.style.justifyContent="center";
-      card.style.alignItems="center";
-      card.style.border="1px solid #000";
-      card.style.borderRadius="8px";
-      card.style.marginLeft=i===0?"0":"-30px";
-      handCircle.appendChild(card);
-    });
-    playerDiv.appendChild(handCircle);
+  // PLAYER
+  const pc = document.getElementById("playerCards");
+  pc.innerHTML="";
+  playerHands.forEach((hand,idx)=>{
+    hand.forEach(c=>pc.appendChild(card(c)));
+    if(idx<playerHands.length-1) pc.appendChild(document.createElement("br"));
   });
+  let currentScore = score(playerHands[currentHandIndex] || []);
+  document.getElementById("playerScore").innerText=
+    playerHands.length>1 ? `Mano ${currentHandIndex+1}: ${currentScore}` : `Tu: ${currentScore}`;
 
-  // Aggiorna punteggi
-  const pScore=score(playerHands[currentHand]);
-  const dScore=PHASE==="DEALER" ? score(dealerHand) : score([dealerHand[0]]);
-  document.getElementById("playerScore").innerText=`Tu: ${pScore}`;
-  document.getElementById("dealerScore").innerText=`Dealer: ${dScore}`;
+  // DEALER
+  const dc = document.getElementById("dealerCards");
+  dc.innerHTML="";
+  dealerHand.forEach(c=>dc.appendChild(card(c)));
+  if(PHASE==="PLAYER" && dealerHole) dc.appendChild(hiddenCard());
+  document.getElementById("dealerScore").innerText=
+    (PHASE==="PLAYER" && dealerHole) ? "Dealer: ?" : `Dealer: ${score(dealerHand)}`;
 }
 
-// ================== FIREBASE ==================
-function sendResultToFirebase(){
-  const userId=firebase.auth().currentUser?.uid||"guest_"+Date.now();
-  const username=firebase.auth().currentUser?.displayName||userId;
-  firebase.database().ref("blackjack/players/"+userId).set({
-    username,
-    balance: bankroll,
-    handsLeft,
-    timestamp: Date.now(),
-    hash: roundHash,
-    seed: roundSeed
-  });
+// ================== CARD ELEMENTS ==================
+function card(c){
+  const d=document.createElement("div");
+  d.className="card";
+  d.innerText=c.v+c.s;
+  d.style.color=["♥","♦"].includes(c.s)?"red":"black";
+  return d;
 }
 
-// ================== ANTI-CHEAT ==================
-function hashString(str){
-  let hash=0;
-  for(let i=0;i<str.length;i++){
-    hash=((hash<<5)-hash)+str.charCodeAt(i);
-    hash|=0;
-  }
-  return hash;
+function hiddenCard(){
+  const d=document.createElement("div");
+  d.className="card";
+  d.innerText="🂠";
+  return d;
 }
 
-// ================== INIZIALIZZA ==================
-updateUI()
+// ================== UTILS ==================
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+function disableAll(){ document.querySelectorAll("button,.chip").forEach(e=>e.disabled=true); }
+
+// ================== INIT ==================
+render()
