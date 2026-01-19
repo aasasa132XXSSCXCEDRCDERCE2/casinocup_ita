@@ -17,7 +17,6 @@
     height:100vh;
     overflow-x:hidden;
   }
-
   #table {
     position:relative;
     width:95%;
@@ -26,68 +25,44 @@
     margin-top:10px;
     background: linear-gradient(#0f5a34, #07331e);
     border-radius:30px;
-    padding:10px;
+    padding:15px;
     box-sizing:border-box;
     display:flex;
     flex-direction:column;
     justify-content:space-between;
   }
-
   .cards {
     display:flex;
     justify-content:center;
     gap:5px;
+    flex-wrap:wrap;
     min-height:80px;
     margin-bottom:10px;
   }
-
   .card {
-    width:50px;
-    height:70px;
-    border-radius:5px;
+    width:60px;
+    height:90px;
+    border-radius:8px;
     background:#fff;
     color:#000;
     display:flex;
     justify-content:center;
     align-items:center;
     font-weight:bold;
-    font-size:16px;
+    font-size:18px;
     box-shadow:0 2px 5px rgba(0,0,0,0.5);
   }
-
   #dealerArea, #playerArea {
     text-align:center;
     margin:5px 0;
   }
-
-  #chips {
-    display:flex;
-    justify-content:center;
-    flex-wrap:wrap;
-    margin-top:5px;
-  }
-
-  .chip {
-    background:#e74c3c;
-    width:50px;
-    height:50px;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    border-radius:50%;
-    font-weight:bold;
-    cursor:pointer;
-    margin:3px;
-  }
-
   #ui {
     display:flex;
     justify-content:space-around;
     flex-wrap:wrap;
     margin-top:10px;
   }
-
-  button {
+  button, .chip {
     background:#d4af37;
     border:none;
     padding:8px 14px;
@@ -96,36 +71,51 @@
     margin:3px;
     border-radius:5px;
   }
-
+  .chip {
+    background:#e74c3c;
+    width:50px;
+    height:50px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-size:16px;
+  }
+  #chips {
+    display:flex;
+    justify-content:center;
+    flex-wrap:wrap;
+    margin-top:5px;
+  }
   #scores {
     display:flex;
     justify-content:space-around;
     margin-bottom:10px;
   }
-
   @media(max-width:480px){
     .card{width:40px;height:60px;font-size:14px;}
     button, .chip{padding:6px 10px;font-size:14px;}
   }
-
 </style>
 </head>
 <body>
 
 <div id="table">
 
+  <!-- DEALER AREA -->
   <div id="dealerArea">
     <h3>Dealer</h3>
     <div id="dealerCards" class="cards"></div>
-    <div id="dealerScore">Dealer: ?</div>
+    <div id="dealerScore">Dealer: 0</div>
   </div>
 
+  <!-- PLAYER AREA -->
   <div id="playerArea">
     <h3>Tu</h3>
     <div id="playerCards" class="cards"></div>
     <div id="playerScore">Tu: 0</div>
   </div>
 
+  <!-- CHIPS -->
   <div id="chips">
     <div class="chip" data-value="50">50</div>
     <div class="chip" data-value="100">100</div>
@@ -133,6 +123,7 @@
     <div class="chip" data-value="1000">1000</div>
   </div>
 
+  <!-- UI BUTTONS -->
   <div id="ui">
     <div>
       <button id="undoBtn">Indietro</button>
