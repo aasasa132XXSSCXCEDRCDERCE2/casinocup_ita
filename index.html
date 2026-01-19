@@ -1,205 +1,323 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Blackjack Torneo</title>
+// ==================================================
+//            BLACKJACK TORNEO – CASINÒ PRO
+// ==================================================
 
-<style>
-/* ================== RESET ================== */
-* { box-sizing: border-box; user-select: none; }
-body {
-  margin: 0;
-  font-family: "Trebuchet MS", Arial, sans-serif;
-  background: radial-gradient(circle at top, #111 0%, #000 70%);
-  color: #f5f5f5;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
+// ---------------- CONFIG ----------------
+const MIN_BET = 50;
+const MAX_HANDS = 30;
+const DECKS = 6;
+const CUT_PERCENT = 0.25;
+const DEALER_STAND = 17;
+
+// ---------------- STATE ----------------
+let bankroll = 10000;
+let handsLeft = MAX_HANDS;
+let bet = 0;
+let betHistory = [];
+
+let shoe = [];
+let cutIndex = 0;
+
+let hands = [];
+let activeHand = 0;
+
+let dealerHand = [];
+let dealerHole = null;
+
+let insuranceBet = 0;
+
+let PHASE = "BET"; 
+// BET → PLAYER → DEALER → END
+
+// ---------------- CARDS ----------------
+const SUITS = ["♠","♥","♦","♣"];
+const VALUES = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+
+// ==================================================
+//                   SHOE
+// ==================================================
+function createShoe(){
+  shoe = [];
+  for(let d=0; d<DECKS; d++){
+    SUITS.forEach(s=>{
+      VALUES.forEach(v=>{
+        shoe.push({v,s});
+      });
+    });
+  }
+  shuffle(shoe);
+  cutIndex = Math.floor(shoe.length * CUT_PERCENT);
 }
 
-/* ================== TABLE ================== */
-#table {
-  width: 95%;
-  max-width: 760px;
-  height: 95%;
-  background:
-    radial-gradient(circle at center, #0f7a46 0%, #0b4f2d 55%, #06301c 100%);
-  border-radius: 50% 50% 45% 45% / 60% 60% 40% 40%;
-  border: 10px solid #3b2a14;
-  outline: 3px solid #d4af37;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+function shuffle(d){
+  for(let i=d.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [d[i],d[j]]=[d[j],d[i]];
+  }
 }
 
-/* ================== DEALER ================== */
-#dealerArea {
-  text-align: center;
-  padding-top: 10px;
-}
-#dealerArea h3 {
-  font-weight: normal;
-  letter-spacing: 2px;
-  color: #e6c97a;
-  margin-bottom: 6px;
+function draw(){
+  if(shoe.length <= cutIndex){
+    createShoe(); // CUT CARD INVISIBILE
+  }
+  return shoe.pop();
 }
 
-/* ================== PLAYER ================== */
-#playerArea {
-  text-align: center;
-  margin-bottom: 10px;
-}
-#playerArea h3 {
-  font-weight: normal;
-  letter-spacing: 2px;
-  color: #e6c97a;
-  margin-bottom: 6px;
-}
-
-/* ================== CARDS ================== */
-.cards {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  min-height: 95px;
-  margin-bottom: 5px;
+// ==================================================
+//                   SCORE
+// ==================================================
+function score(hand){
+  let total=0, aces=0;
+  hand.forEach(c=>{
+    if(c.v==="A"){ total+=11; aces++; }
+    else if(["K","Q","J"].includes(c.v)) total+=10;
+    else total+=parseInt(c.v);
+  });
+  while(total>21 && aces>0){ total-=10; aces--; }
+  return total;
 }
 
-.card {
-  width: 62px;
-  height: 92px;
-  background: linear-gradient(#ffffff, #e6e6e6);
-  border-radius: 6px;
-  border: 1px solid #aaa;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  font-size: 20px;
-  box-shadow:
-    0 2px 4px rgba(0,0,0,.6),
-    inset 0 0 0 1px rgba(255,255,255,.6);
+// ==================================================
+//                BET SYSTEM
+// ==================================================
+document.querySelectorAll(".chip").forEach(c=>{
+  c.onclick=()=>{
+    if(PHASE!=="BET") return;
+    const v = c.dataset.value==="all" ? bankroll : parseInt(c.dataset.value);
+    if(v<=0 || bankroll<v) return;
+    bankroll-=v;
+    bet+=v;
+    betHistory.push(v);
+    render();
+  };
+});
+
+undoBtn.onclick=()=>{
+  if(PHASE!=="BET" || !betHistory.length) return;
+  const v = betHistory.pop();
+  bet-=v;
+  bankroll+=v;
+  render();
+};
+
+// ==================================================
+//                   DEAL
+// ==================================================
+dealBtn.onclick=()=>{
+  if(PHASE!=="BET") return;
+  if(bet<MIN_BET) return alert("Minimo 50€");
+  if(handsLeft<=0) return;
+
+  startRound();
+};
+
+function startRound(){
+  PHASE="PLAYER";
+  insuranceBet=0;
+
+  hands=[[draw(),draw()]];
+  activeHand=0;
+
+  dealerHand=[draw()];
+  dealerHole=draw();
+
+  // INSURANCE
+  if(dealerHand[0].v==="A" && bankroll>=bet/2){
+    if(confirm("Insurance?")){
+      insuranceBet = bet/2;
+      bankroll -= insuranceBet;
+    }
+  }
+
+  render();
 }
 
-/* ================== SCORES ================== */
-#dealerScore, #playerScore {
-  font-size: 14px;
-  opacity: 0.9;
+// ==================================================
+//                    HIT
+// ==================================================
+hitBtn.onclick=()=>{
+  if(PHASE!=="PLAYER") return;
+  hands[activeHand].push(draw());
+  render();
+
+  if(score(hands[activeHand])>21){
+    nextHandOrDealer();
+  }
+};
+
+// ==================================================
+//                   STAND
+// ==================================================
+standBtn.onclick=()=>{
+  if(PHASE!=="PLAYER") return;
+  nextHandOrDealer();
+};
+
+// ==================================================
+//                   DOUBLE
+// ==================================================
+doubleBtn.onclick=()=>{
+  if(PHASE!=="PLAYER") return;
+  if(bankroll<bet) return;
+
+  bankroll-=bet;
+  bet*=2;
+  hands[activeHand].push(draw());
+  render();
+  nextHandOrDealer();
+};
+
+// ==================================================
+//                   SPLIT
+// ==================================================
+splitBtn.onclick=()=>{
+  if(PHASE!=="PLAYER") return;
+  const h = hands[activeHand];
+  if(h.length!==2 || h[0].v!==h[1].v) return;
+  if(bankroll<bet) return;
+
+  bankroll-=bet;
+
+  hands.splice(activeHand,1,
+    [h[0],draw()],
+    [h[1],draw()]
+  );
+
+  render();
+};
+
+// ==================================================
+//             HAND FLOW CONTROL
+// ==================================================
+function nextHandOrDealer(){
+  if(activeHand < hands.length-1){
+    activeHand++;
+    render();
+  } else {
+    PHASE="DEALER";
+    dealerTurn();
+  }
 }
 
-/* ================== CHIPS ================== */
-#chips {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin: 5px 0;
+// ==================================================
+//                DEALER LOGIC
+// ==================================================
+async function dealerTurn(){
+  dealerHand.push(dealerHole);
+  dealerHole=null;
+  render();
+
+  await sleep(800);
+
+  while(score(dealerHand)<DEALER_STAND){
+    dealerHand.push(draw());
+    render();
+    await sleep(700);
+  }
+
+  endRound();
 }
 
-.chip {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  font-weight: bold;
-  font-size: 14px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  border: 4px dashed rgba(255,255,255,.8);
-  box-shadow:
-    inset 0 0 0 3px rgba(0,0,0,.4),
-    0 3px 6px rgba(0,0,0,.6);
+// ==================================================
+//                 END ROUND
+// ==================================================
+function endRound(){
+  PHASE="END";
+  const dealerScore = score(dealerHand);
+  const dealerBJ = dealerScore===21 && dealerHand.length===2;
+
+  hands.forEach(h=>{
+    const p = score(h);
+    const playerBJ = p===21 && h.length===2;
+
+    if(playerBJ && !dealerBJ){
+      bankroll += bet * 2.5; // 3:2
+    }
+    else if(p<=21){
+      if(dealerScore>21 || p>dealerScore) bankroll+=bet*2;
+      else if(p===dealerScore) bankroll+=bet;
+    }
+  });
+
+  if(insuranceBet && dealerBJ){
+    bankroll += insuranceBet * 3;
+  }
+
+  handsLeft--;
+
+  setTimeout(resetRound,2500);
 }
 
-.chip[data-value="50"]   { background:#c0392b; }
-.chip[data-value="100"]  { background:#2980b9; }
-.chip[data-value="500"]  { background:#27ae60; }
-.chip[data-value="1000"] { background:#8e44ad; }
-.chip[data-value="all"]  { background:#d4af37; color:#000; }
+function resetRound(){
+  bet=0;
+  betHistory=[];
+  hands=[];
+  dealerHand=[];
+  dealerHole=null;
 
-/* ================== UI ================== */
-#ui {
-  display: grid;
-  grid-template-columns: 1fr 2fr 1fr;
-  gap: 10px;
-  align-items: center;
+  if(bankroll<=0){
+    alert("Bankroll finito. Torneo concluso.");
+    disableAll();
+    return;
+  }
+
+  PHASE="BET";
+  render();
 }
 
-button {
-  background: linear-gradient(#f0d98c, #c8a846);
-  border: none;
-  padding: 8px 12px;
-  border-radius: 4px;
-  font-weight: bold;
-  cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0,0,0,.6);
+// ==================================================
+//                    RENDER
+// ==================================================
+function render(){
+  bankrollEl.innerText=bankroll;
+  handsLeftEl.innerText=handsLeft;
+  betEl.innerText=bet;
+
+  playerCards.innerHTML="";
+  hands.forEach((h,i)=>{
+    const div=document.createElement("div");
+    div.className="cards";
+    if(i===activeHand) div.style.outline="2px solid gold";
+    h.forEach(c=>div.appendChild(card(c)));
+    playerCards.appendChild(div);
+  });
+
+  playerScore.innerText =
+    hands[activeHand] ? "Tu: "+score(hands[activeHand]) : "";
+
+  dealerCards.innerHTML="";
+  dealerHand.forEach(c=>dealerCards.appendChild(card(c)));
+  if(PHASE==="PLAYER" && dealerHole){
+    dealerCards.appendChild(hiddenCard());
+    dealerScore.innerText="Dealer: ?";
+  } else {
+    dealerScore.innerText="Dealer: "+score(dealerHand);
+  }
 }
-button:active { transform: translateY(1px); }
 
-.stats {
-  font-size: 14px;
-  text-align: right;
+// ==================================================
+//                  ELEMENTS
+// ==================================================
+function card(c){
+  const d=document.createElement("div");
+  d.className="card";
+  d.innerText=c.v+c.s;
+  d.style.color=["♥","♦"].includes(c.s)?"red":"black";
+  return d;
+}
+function hiddenCard(){
+  const d=document.createElement("div");
+  d.className="card";
+  d.innerText="🂠";
+  return d;
 }
 
-/* ================== MOBILE ================== */
-@media(max-width:480px){
-  .card { width:48px;height:72px;font-size:16px; }
-  .chip { width:46px;height:46px;font-size:12px; }
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+function disableAll(){
+  document.querySelectorAll("button,.chip")
+    .forEach(e=>e.disabled=true);
 }
-</style>
-</head>
 
-<body>
-
-<div id="table">
-
-  <!-- DEALER -->
-  <div id="dealerArea">
-    <h3>DEALER</h3>
-    <div id="dealerCards" class="cards"></div>
-    <div id="dealerScore"></div>
-  </div>
-
-  <!-- PLAYER -->
-  <div id="playerArea">
-    <h3>PLAYER</h3>
-    <div id="playerCards"></div>
-    <div id="playerScore"></div>
-  </div>
-
-  <!-- CHIPS -->
-  <div id="chips">
-    <div class="chip" data-value="50">50</div>
-    <div class="chip" data-value="100">100</div>
-    <div class="chip" data-value="500">500</div>
-    <div class="chip" data-value="1000">1000</div>
-    <div class="chip" data-value="all">ALL</div>
-  </div>
-
-  <!-- UI -->
-  <div id="ui">
-    <button id="undoBtn">UNDO</button>
-
-    <div style="text-align:center">
-      <button id="dealBtn">DEAL</button>
-      <button id="hitBtn">HIT</button>
-      <button id="standBtn">STAND</button>
-      <button id="doubleBtn">DOUBLE</button>
-      <button id="splitBtn">SPLIT</button>
-    </div>
-
-    <div class="stats">
-      Bankroll €<span id="bankroll">0</span><br>
-      Mani <span id="handsLeft">0</span><br>
-      Puntata €<span id="bet">0</span>
-    </div>
-  </div>
-
-</div>
-
-<script src="game.js"></script>
-</body>
-</html>
+// INIT
+createShoe();
+render();
