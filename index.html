@@ -14,22 +14,25 @@
     flex-direction:column;
     align-items:center;
     justify-content:flex-start;
-    min-height:100vh;
+    height:100vh;
+    overflow-x:hidden;
   }
+
   #table {
     position:relative;
     width:95%;
-    max-width:600px;
-    height:90%;
+    max-width:700px;
+    height:95%;
     margin-top:10px;
     background: linear-gradient(#0f5a34, #07331e);
-    border-radius:20px;
+    border-radius:30px;
     padding:10px;
     box-sizing:border-box;
     display:flex;
     flex-direction:column;
     justify-content:space-between;
   }
+
   .cards {
     display:flex;
     justify-content:center;
@@ -37,6 +40,7 @@
     min-height:80px;
     margin-bottom:10px;
   }
+
   .card {
     width:50px;
     height:70px;
@@ -50,16 +54,19 @@
     font-size:16px;
     box-shadow:0 2px 5px rgba(0,0,0,0.5);
   }
+
   #dealerArea, #playerArea {
     text-align:center;
     margin:5px 0;
   }
+
   #chips {
     display:flex;
     justify-content:center;
     flex-wrap:wrap;
     margin-top:5px;
   }
+
   .chip {
     background:#e74c3c;
     width:50px;
@@ -67,17 +74,19 @@
     display:flex;
     justify-content:center;
     align-items:center;
+    border-radius:50%;
     font-weight:bold;
     cursor:pointer;
-    border-radius:50%;
-    margin:2px;
+    margin:3px;
   }
+
   #ui {
     display:flex;
     justify-content:space-around;
     flex-wrap:wrap;
     margin-top:10px;
   }
+
   button {
     background:#d4af37;
     border:none;
@@ -87,15 +96,18 @@
     margin:3px;
     border-radius:5px;
   }
+
   #scores {
     display:flex;
     justify-content:space-around;
     margin-bottom:10px;
   }
+
   @media(max-width:480px){
     .card{width:40px;height:60px;font-size:14px;}
     button, .chip{padding:6px 10px;font-size:14px;}
   }
+
 </style>
 </head>
 <body>
