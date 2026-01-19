@@ -15,16 +15,17 @@
     align-items:center;
     justify-content:flex-start;
     min-height:100vh;
-    overflow-x:hidden;
   }
   #table {
     position:relative;
     width:95%;
     max-width:600px;
+    height:90%;
     margin-top:10px;
     background: linear-gradient(#0f5a34, #07331e);
-    border-radius:30px;
+    border-radius:20px;
     padding:10px;
+    box-sizing:border-box;
     display:flex;
     flex-direction:column;
     justify-content:space-between;
@@ -53,20 +54,11 @@
     text-align:center;
     margin:5px 0;
   }
-  #ui {
+  #chips {
     display:flex;
-    justify-content:space-around;
+    justify-content:center;
     flex-wrap:wrap;
-    margin-top:10px;
-  }
-  button, .chip {
-    background:#d4af37;
-    border:none;
-    padding:8px 14px;
-    font-weight:bold;
-    cursor:pointer;
-    margin:3px;
-    border-radius:5px;
+    margin-top:5px;
   }
   .chip {
     background:#e74c3c;
@@ -75,12 +67,25 @@
     display:flex;
     justify-content:center;
     align-items:center;
+    font-weight:bold;
+    cursor:pointer;
+    border-radius:50%;
+    margin:2px;
   }
-  #chips {
+  #ui {
     display:flex;
-    justify-content:center;
+    justify-content:space-around;
     flex-wrap:wrap;
-    margin-top:5px;
+    margin-top:10px;
+  }
+  button {
+    background:#d4af37;
+    border:none;
+    padding:8px 14px;
+    font-weight:bold;
+    cursor:pointer;
+    margin:3px;
+    border-radius:5px;
   }
   #scores {
     display:flex;
@@ -97,21 +102,18 @@
 
 <div id="table">
 
-  <!-- Dealer -->
   <div id="dealerArea">
     <h3>Dealer</h3>
     <div id="dealerCards" class="cards"></div>
-    <div id="dealerScore">Dealer: 0</div>
+    <div id="dealerScore">Dealer: ?</div>
   </div>
 
-  <!-- Player -->
   <div id="playerArea">
     <h3>Tu</h3>
     <div id="playerCards" class="cards"></div>
     <div id="playerScore">Tu: 0</div>
   </div>
 
-  <!-- Chips -->
   <div id="chips">
     <div class="chip" data-value="50">50</div>
     <div class="chip" data-value="100">100</div>
@@ -119,7 +121,6 @@
     <div class="chip" data-value="1000">1000</div>
   </div>
 
-  <!-- UI Pulsanti -->
   <div id="ui">
     <div>
       <button id="undoBtn">Indietro</button>
@@ -140,7 +141,7 @@
 
 </div>
 
-<!-- Firebase SDK compat -->
+<!-- Firebase compat -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
