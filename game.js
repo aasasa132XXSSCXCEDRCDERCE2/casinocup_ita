@@ -12,7 +12,7 @@ let gameOver = false;
 const suits = ['♠','♥','♦','♣'];
 const values = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 
-// Seed e hash anti-cheat
+// Anti-cheat
 let roundSeed = "";
 let roundHash = "";
 
@@ -22,12 +22,14 @@ function createDeck(){
     suits.forEach(s => values.forEach(v => d.push({v,s})));
     return d;
 }
+
 function shuffle(d){
     for(let i=d.length-1;i>0;i--){
         const j = Math.floor(Math.random()*(i+1));
         [d[i],d[j]] = [d[j],d[i]];
     }
 }
+
 function draw(){ return deck.pop(); }
 
 // ----------------- CALCOLO PUNTEGGIO -----------------
@@ -48,14 +50,6 @@ function updateUI(showDealer=false){
     document.getElementById("bankroll").innerText = bankroll;
     document.getElementById("handsLeft").innerText = handsLeft;
     document.getElementById("bet").innerText = bet;
-
-    // Aggiorna punteggio giocatore
-    if(playerHands[currentHand]){
-        document.getElementById("playerScore").innerText = "Tu: " + score(playerHands[currentHand]);
-    }
-
-    // Aggiorna punteggio dealer solo se showDealer
-    document.getElementById("dealerScore").innerText = showDealer ? "Dealer: " + score(dealer) : "Dealer: ?";
     render(showDealer);
 }
 
@@ -89,21 +83,18 @@ document.getElementById("dealBtn").addEventListener("click", ()=>{
     if(bet<50){ alert("Puntata minima 50€"); return; }
     if(handsLeft<=0){ alert("Hai finito le mani!"); return; }
 
-    // Deck e dealer
     deck = createDeck();
     shuffle(deck);
     dealer = [draw(), draw()];
     playerHands = [[draw(), draw()]];
     currentHand = 0;
 
-    // Genera seed e hash anti-cheat
+    // Anti-cheat seed/hash
     roundSeed = Math.floor(Math.random()*1e9).toString();
     roundHash = hashString(JSON.stringify({seed: roundSeed, bet: bet, deck: deck.map(c=>c.v+c.s)}));
 
-    // Nascondi chips quando inizi
     document.getElementById("chips").style.display="none";
 
-    // Mostra subito carte e punteggi
     updateUI();
 });
 
@@ -112,8 +103,8 @@ document.getElementById("hitBtn").addEventListener("click", ()=>{
     if(gameOver) return;
     let hand = playerHands[currentHand];
     hand.push(draw());
-    if(score(hand)>21){ // bust
-        setTimeout(nextHand, 500);
+    if(score(hand)>21){
+        setTimeout(nextHand,500);
     }
     updateUI();
 });
@@ -132,8 +123,8 @@ document.getElementById("doubleBtn").addEventListener("click", ()=>{
         bankroll -= bet;
         bet *= 2;
         hand.push(draw());
-        updateUI();
         nextHand();
+        updateUI();
     } else alert("Saldo insufficiente per double");
 });
 
@@ -160,31 +151,31 @@ function nextHand(){
 
 // ----------------- RISOLUZIONE DEALER -----------------
 function resolveDealer(){
+    render(true); // mostra carte dealer
     // Dealer automatico
     while(score(dealer)<17){
         dealer.push(draw());
-        updateUI(true); // mostra carte dealer man mano
+        render(true);
     }
 
     // Calcolo vincite
     playerHands.forEach(hand=>{
         let p = score(hand);
         let d = score(dealer);
-        if(p>21){} // bust perde
+        if(p>21){} // bust
         else if(d>21 || p> d) bankroll += (p===21 && hand.length===2)? Math.floor(bet*2.5): bet*2;
         else if(p<d){} // perde
-        else if(p===d) bankroll += bet; // pareggio restituisce puntata
+        else if(p===d) bankroll += bet; // pareggio
     });
 
     handsLeft--;
     sendResultToFirebase();
     bet=0;
     playerHands=[[]];
-    dealer=[]; 
+    dealer=[];
     betHistory=[];
-    updateUI(true);
+    updateUI();
 
-    // Mostra chips dopo 3 secondi se mani rimaste
     setTimeout(()=>{
         if(handsLeft>0){
             document.getElementById("chips").style.display="flex";
@@ -193,10 +184,10 @@ function resolveDealer(){
             alert("Hai finito tutte le mani! Non puoi più giocare.");
             document.querySelectorAll("button, .chip").forEach(el=>el.disabled=true);
         }
-    },3000);
+    }, 3000);
 }
 
-// ----------------- RENDER CARTE -----------------
+// ----------------- RENDER -----------------
 function render(showDealer=false){
     const dealerDiv = document.getElementById("dealerCards");
     dealerDiv.innerHTML="";
@@ -212,8 +203,8 @@ function render(showDealer=false){
         card.style.justifyContent="center";
         card.style.alignItems="center";
         card.style.border="1px solid #000";
-        card.style.borderRadius="5px";
-        card.style.marginLeft=i===0?"0":"-20px";
+        card.style.borderRadius="8px";
+        card.style.marginLeft = i===0 ? "0" : "-30px";
         dealerDiv.appendChild(card);
     });
 
@@ -232,11 +223,14 @@ function render(showDealer=false){
             card.style.justifyContent="center";
             card.style.alignItems="center";
             card.style.border="1px solid #000";
-            card.style.borderRadius="5px";
-            card.style.marginLeft=i===0?"0":"-20px";
+            card.style.borderRadius="8px";
+            card.style.marginLeft = i===0 ? "0" : "-30px";
             playerDiv.appendChild(card);
         });
     });
+
+    document.getElementById("playerScore").innerText = "Tu: " + score(playerHands[currentHand]);
+    document.getElementById("dealerScore").innerText = showDealer ? "Dealer: " + score(dealer) : "Dealer: ?";
 }
 
 // ----------------- FIREBASE -----------------
