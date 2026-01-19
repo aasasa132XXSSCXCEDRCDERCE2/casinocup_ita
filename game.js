@@ -1,188 +1,222 @@
-// ---------------- STATO GIOCO ----------------
-const STATE = {
-  WAITING_BET: "WAITING_BET",
-  PLAYER_TURN: "PLAYER_TURN",
-  DEALER_TURN: "DEALER_TURN",
-  ROUND_END: "ROUND_END",
-  GAME_OVER: "GAME_OVER"
-};
-
-let gameState = STATE.WAITING_BET;
-
-// ---------------- VARIABILI ----------------
+// ----------------- VARIABILI PRINCIPALI -----------------
 let bankroll = 10000;
-let bet = 0;
 let handsLeft = 30;
-
+let bet = 0;
+let betHistory = [];
 let deck = [];
 let dealer = [];
 let player = [];
+let gameOver = false;
+let gameState = "WAITING_BET"; // WAITING_BET, PLAYER_TURN, ROUND_END, GAME_OVER
 
-// ---------------- COSTANTI ----------------
-const suits = ["♠","♥","♦","♣"];
-const values = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+const suits = ['♠','♥','♦','♣'];
+const values = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 
-// ---------------- DECK ----------------
+// ----------------- LOGICA DECK -----------------
 function createDeck(){
-  let d = [];
-  suits.forEach(s=>{
-    values.forEach(v=>{
-      d.push({v,s});
-    });
-  });
-  return d;
+    let d = [];
+    suits.forEach(s => values.forEach(v => d.push({v,s})));
+    return d;
 }
-
 function shuffle(d){
-  for(let i=d.length-1;i>0;i--){
-    const j = Math.floor(Math.random()*(i+1));
-    [d[i],d[j]] = [d[j],d[i]];
-  }
+    for(let i=d.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [d[i],d[j]] = [d[j],d[i]];
+    }
 }
+function draw(){ return deck.pop(); }
 
-function draw(){
-  return deck.pop();
-}
-
-// ---------------- SCORE ----------------
+// ----------------- CALCOLO PUNTEGGIO -----------------
 function score(cards){
-  let total = 0;
-  let aces = 0;
-
-  cards.forEach(c=>{
-    if(c.v==="A"){ total+=11; aces++; }
-    else if(["K","Q","J"].includes(c.v)) total+=10;
-    else total+=parseInt(c.v);
-  });
-
-  while(total>21 && aces>0){
-    total-=10;
-    aces--;
-  }
-  return total;
+    let total = 0;
+    let aces = 0;
+    cards.forEach(c=>{
+        if(c.v==="A"){ total+=11; aces++; }
+        else if(["K","Q","J"].includes(c.v)) total+=10;
+        else total += parseInt(c.v);
+    });
+    while(total>21 && aces>0){ total-=10; aces--; }
+    return total;
 }
 
-// ---------------- RENDER ----------------
-function render(){
-  const dDiv = document.getElementById("dealerCards");
-  const pDiv = document.getElementById("playerCards");
-
-  dDiv.innerHTML="";
-  pDiv.innerHTML="";
-
-  dealer.forEach((c,i)=>{
-    const el = document.createElement("div");
-    el.className="card "+((c.s==="♥"||c.s==="♦")?"red":"");
-    el.innerText = (gameState===STATE.PLAYER_TURN && i===0) ? "?" : c.v+c.s;
-    dDiv.appendChild(el);
-  });
-
-  player.forEach(c=>{
-    const el = document.createElement("div");
-    el.className="card "+((c.s==="♥"||c.s==="♦")?"red":"");
-    el.innerText = c.v+c.s;
-    pDiv.appendChild(el);
-  });
-
-  document.getElementById("playerScore").innerText = score(player);
-  document.getElementById("dealerScore").innerText =
-    gameState===STATE.PLAYER_TURN ? "?" : score(dealer);
-
-  document.getElementById("bankroll").innerText = bankroll;
-  document.getElementById("bet").innerText = bet;
-  document.getElementById("hands").innerText = handsLeft;
-}
-
-// ---------------- PUNTATE ----------------
-document.querySelectorAll(".chip").forEach(chip=>{
-  chip.onclick = ()=>{
-    if(gameState!==STATE.WAITING_BET) return;
-    const val = parseInt(chip.dataset.value);
-    if(bet+val>1000 || bankroll<val) return;
-    bet+=val;
-    bankroll-=val;
+// ----------------- UPDATE UI -----------------
+function updateUI(){
+    document.getElementById("bankroll").innerText = bankroll;
+    document.getElementById("handsLeft").innerText = handsLeft;
+    document.getElementById("bet").innerText = bet;
     render();
-  };
+}
+
+// ----------------- GESTIONE CHIPS -----------------
+document.querySelectorAll(".chip").forEach(c=>{
+    c.addEventListener("click", ()=>{
+        if(gameState !== "WAITING_BET") return;
+        let val = parseInt(c.dataset.value);
+        if(bankroll>=val && bet+val <=1000){
+            bet += val;
+            bankroll -= val;
+            betHistory.push(val);
+            updateUI();
+        }
+    });
+});
+document.getElementById("undoBtn").addEventListener("click", ()=>{
+    if(gameState !== "WAITING_BET") return;
+    if(betHistory.length>0){
+        let last = betHistory.pop();
+        bet -= last;
+        bankroll += last;
+        updateUI();
+    }
 });
 
-// ---------------- DEAL ----------------
-document.getElementById("dealBtn").onclick = ()=>{
-  if(gameState!==STATE.WAITING_BET) return;
-  if(bet<50) return;
+// ----------------- DEAL -----------------
+document.getElementById("dealBtn").addEventListener("click", ()=>{
+    if(gameState !== "WAITING_BET") return;
+    if(bet<50){ alert("Puntata minima 50€"); return; }
+    if(handsLeft<=0){ alert("Hai finito le mani!"); return; }
 
-  deck = createDeck();
-  shuffle(deck);
+    deck = createDeck();
+    shuffle(deck);
+    dealer = [draw(), draw()];
+    player = [draw(), draw()];
 
-  dealer = [draw(),draw()];
-  player = [draw(),draw()];
+    gameState = "PLAYER_TURN";
 
-  gameState = STATE.PLAYER_TURN;
-  render();
-};
+    document.getElementById("chips").style.display="none";
 
-// ---------------- HIT ----------------
-document.getElementById("hitBtn").onclick = ()=>{
-  if(gameState!==STATE.PLAYER_TURN) return;
-  player.push(draw());
-  if(score(player)>21){
+    updateUI();
+});
+
+// ----------------- HIT -----------------
+document.getElementById("hitBtn").addEventListener("click", ()=>{
+    if(gameState !== "PLAYER_TURN") return;
+    player.push(draw());
+    if(score(player)>21){ // bust
+        setTimeout(endRound,500);
+    }
+    updateUI();
+});
+
+// ----------------- STAND -----------------
+document.getElementById("standBtn").addEventListener("click", ()=>{
+    if(gameState !== "PLAYER_TURN") return;
     endRound();
-  }
-  render();
-};
+});
 
-// ---------------- STAND ----------------
-document.getElementById("standBtn").onclick = ()=>{
-  if(gameState!==STATE.PLAYER_TURN) return;
-  dealerTurn();
-};
+// ----------------- DOUBLE -----------------
+document.getElementById("doubleBtn").addEventListener("click", ()=>{
+    if(gameState !== "PLAYER_TURN") return;
+    if(bankroll>=bet){
+        bankroll -= bet;
+        bet *=2;
+        player.push(draw());
+        setTimeout(endRound,500);
+    } else alert("Saldo insufficiente per double");
+});
 
-// ---------------- DOUBLE ----------------
-document.getElementById("doubleBtn").onclick = ()=>{
-  if(gameState!==STATE.PLAYER_TURN) return;
-  if(bankroll<bet) return;
-  bankroll-=bet;
-  bet*=2;
-  player.push(draw());
-  dealerTurn();
-};
-
-// ---------------- DEALER ----------------
-function dealerTurn(){
-  gameState = STATE.DEALER_TURN;
-  while(score(dealer)<17){
-    dealer.push(draw());
-  }
-  endRound();
-}
-
-// ---------------- RISULTATO ----------------
+// ----------------- FINE ROUND -----------------
 function endRound(){
-  const p = score(player);
-  const d = score(dealer);
+    gameState="ROUND_END";
 
-  if(p<=21){
-    if(d>21 || p>d) bankroll+=bet*2;
-    else if(p===d) bankroll+=bet;
-  }
+    // Dealer automatico
+    while(score(dealer)<17){
+        dealer.push(draw());
+    }
 
-  handsLeft--;
-  bet=0;
-  gameState = handsLeft<=0 ? STATE.GAME_OVER : STATE.ROUND_END;
-  render();
+    const playerScore = score(player);
+    const dealerScore = score(dealer);
 
-  setTimeout(resetRound,3000);
+    // Calcolo vincite
+    if(playerScore>21){
+        // bust, perde
+    } else if(dealerScore>21 || playerScore>dealerScore){
+        bankroll += bet*2;
+    } else if(playerScore===dealerScore){
+        bankroll += bet; // pareggio
+    } // else perde
+
+    handsLeft--;
+    sendResultToFirebase();
+
+    updateUI();
+
+    // Reset round dopo 3 secondi
+    setTimeout(()=>{
+        if(handsLeft<=0){
+            gameOver=true;
+            alert("Hai finito tutte le mani!");
+            document.querySelectorAll("button, .chip").forEach(el=>el.disabled=true);
+            return;
+        }
+        player=[];
+        dealer=[];
+        bet=0;
+        betHistory=[];
+        gameState="WAITING_BET";
+        document.getElementById("chips").style.display="flex";
+        updateUI();
+    },3000);
 }
 
-function resetRound(){
-  if(gameState===STATE.GAME_OVER){
-    alert("Fine gioco");
-    return;
-  }
-  dealer=[];
-  player=[];
-  gameState = STATE.WAITING_BET;
-  render();
+// ----------------- RENDER -----------------
+function render(){
+    // Dealer
+    const dealerDiv = document.getElementById("dealerCards");
+    dealerDiv.innerHTML="";
+    dealer.forEach((c,i)=>{
+        const card = document.createElement("div");
+        card.className="card";
+        card.innerText = c.v+c.s;
+        card.style.background = ["♥","♦"].includes(c.s)?"#ffdddd":"#ffffff";
+        card.style.color = ["♥","♦"].includes(c.s)?"red":"black";
+        card.style.width="50px";
+        card.style.height="70px";
+        card.style.display="flex";
+        card.style.justifyContent="center";
+        card.style.alignItems="center";
+        card.style.border="1px solid #000";
+        card.style.borderRadius="5px";
+        card.style.marginLeft=i===0?"0":"-20px";
+        dealerDiv.appendChild(card);
+    });
+
+    // Player
+    const playerDiv = document.getElementById("playerCards");
+    playerDiv.innerHTML="";
+    player.forEach((c,i)=>{
+        const card = document.createElement("div");
+        card.className="card";
+        card.innerText = c.v+c.s;
+        card.style.background = ["♥","♦"].includes(c.s)?"#ffdddd":"#ffffff";
+        card.style.color = ["♥","♦"].includes(c.s)?"red":"black";
+        card.style.width="50px";
+        card.style.height="70px";
+        card.style.display="flex";
+        card.style.justifyContent="center";
+        card.style.alignItems="center";
+        card.style.border="1px solid #000";
+        card.style.borderRadius="5px";
+        card.style.marginLeft=i===0?"0":"-20px";
+        playerDiv.appendChild(card);
+    });
+
+    // Aggiorna punteggi
+    document.getElementById("dealerScore").innerText = "Dealer: "+score(dealer);
+    document.getElementById("playerScore").innerText = "Tu: "+score(player);
 }
 
-// INIT
-render();
+// ----------------- FIREBASE -----------------
+function sendResultToFirebase(){
+    const userId = firebase.auth().currentUser?.uid || "guest_"+Date.now();
+    const username = firebase.auth().currentUser?.displayName || userId;
+    firebase.database().ref("blackjack/players/"+userId).set({
+        username: username,
+        balance: bankroll,
+        handsLeft: handsLeft,
+        timestamp: Date.now()
+    });
+}
+
+// Inizializza UI
+updateUI();
